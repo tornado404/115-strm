@@ -14,6 +14,8 @@ https://115.com/s/swhspho33xj?password=0000#
 音乐22万首14.39T音乐包3
 访问码：0000
 
+在线下载
+https://flac.life/
 
 # 测试环境
 系统ubuntu20
