@@ -15,6 +15,7 @@ show_menu() {
     echo "请选择操作："
     echo "1: 将目录树转换为目录文件"
     echo "2: 生成 .strm 文件"
+    echo "3: 建立alist索引数据库"
     echo "0: 退出"
 }
 
@@ -140,6 +141,7 @@ generate_strm_files() {
     # 使用 Python 生成 .strm 文件并处理多线程与进度显示
     python3 - <<EOF
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.parse
 import threading
@@ -166,23 +168,27 @@ with open(generated_directory_file, 'r', encoding='utf-8') as f:
 
 processed_lines = 0
 lock = threading.Lock()
+start_time = time.time()
 
 def process_line(line):
     global processed_lines
     line = line.rstrip()
     line_depth = line.count('/')
-    
+
     if line_depth < exclude_option:
         return
-    
+
     adjusted_path = '/'.join(line.split('/')[exclude_option+1:])
-    
+
     if not adjusted_path:
         return
+
+    file_extension = adjusted_path.split('.')[-1].lower()
     
-    file_extension = line.split('.')[-1].lower()
-    
-    if file_extension in media_extensions:
+    # 判断是文件还是目录
+    is_dir = 0 if file_extension in media_extensions else 1
+
+    if is_dir == 0:
         file_name = os.path.basename(adjusted_path)
         parent_path = os.path.dirname(adjusted_path)
         
@@ -197,7 +203,9 @@ def process_line(line):
     
     with lock:
         processed_lines += 1
-        print(f"\r总文件：{total_lines}，已处理：{processed_lines}，进度：{processed_lines / total_lines:.2%}", end='')
+        elapsed_time = time.time() - start_time
+        minutes, seconds = divmod(int(elapsed_time), 60)
+        print(f"\r总文件：{total_lines}，已处理：{processed_lines}，进度：{processed_lines / total_lines:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
 
 with open(generated_directory_file, 'r', encoding='utf-8') as file:
     lines = file.readlines()
@@ -214,6 +222,148 @@ print("\n已完成 .strm 文件生成。")
 EOF
 }
 
+# 建立 alist 索引数据库的函数
+build_index_database() {
+    if [ -z "$generated_directory_file" ]; then
+        if ! find_possible_directory_file; then
+            return
+        fi
+    fi
+
+    echo "建议数据库备份后操作，请选择数据库文件:"
+    select db_file in *.db "输入完整路径"; do
+        case $db_file in
+            "输入完整路径")
+                echo "请输入数据库文件的完整路径："
+                read -r db_file
+                if [ ! -f "$db_file" ]; then
+                    echo "文件不存在，请重新输入。"
+                    return
+                fi
+                break
+                ;;
+            *.db)
+                break
+                ;;
+            *)
+                echo "无效选择，请重试。"
+                ;;
+        esac
+    done
+
+    echo "请输入剔除选项（输入要剔除的目录层级数量）："
+    read -r exclude_option
+
+    if ! [[ "$exclude_option" =~ ^[0-9]+$ ]]; then
+        echo "无效的选项，请输入一个非负整数。"
+        return
+    fi
+
+    temp_db_file=$(mktemp --suffix=.db)
+    
+    python3 - <<EOF
+import sqlite3
+import os
+import time
+
+exclude_option = $exclude_option
+generated_directory_file = "$generated_directory_file"
+temp_db_file = "$temp_db_file"
+
+def is_directory(name):
+    # 判断路径是否为文件夹
+    return '.' not in name
+
+def insert_data_into_temp_db(file_path, db_path, exclude_level):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS x_search_nodes (
+        parent TEXT,
+        name TEXT,
+        is_dir INTEGER,
+        size INTEGER
+    )
+    ''')
+
+    with open(file_path, 'r', encoding='utf-8') as file:
+        total_lines = sum(1 for _ in file)
+        file.seek(0)  # 重置文件指针
+        processed_lines = 0
+        start_time = time.time()
+
+        for line in file:
+            line = line.rstrip()
+            path_parts = line.split('/')[exclude_level+1:]
+
+            if len(path_parts) < 1:
+                continue
+
+            parent = '/' + '/'.join(path_parts[:-1])
+            name = path_parts[-1]
+            
+            # 更新 is_dir 判断逻辑
+            is_dir = 0 if is_directory(name) else 1
+
+            cursor.execute('INSERT INTO x_search_nodes (parent, name, is_dir, size) VALUES (?, ?, ?, 0)', (parent, name, is_dir))
+            
+            processed_lines += 1
+            elapsed_time = time.time() - start_time
+            minutes, seconds = divmod(int(elapsed_time), 60)
+            print(f"\r总文件：{total_lines}，已处理：{processed_lines}，进度：{processed_lines / total_lines:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
+
+    print()  # 换行
+    conn.commit()
+    conn.close()
+
+insert_data_into_temp_db(generated_directory_file, temp_db_file, exclude_option)
+EOF
+
+    echo "数据已处理完毕。请选择操作："
+    echo "1: 新增到现有数据库索引表，如果你数据库已经有索引信息，选择1"
+    echo "2: 替换现有数据库索引表，如果你数据库已经没有索引信息，选择2"
+
+    read -r db_choice
+
+    # 根据选择执行相应操作
+    case $db_choice in
+        1)
+            # 新增数据到数据库
+            sqlite3 "$db_file" <<SQL
+ATTACH DATABASE '$temp_db_file' AS tempdb;
+INSERT INTO main.x_search_nodes (parent, name, is_dir, size)
+SELECT parent, name, is_dir, size FROM tempdb.x_search_nodes;
+DETACH DATABASE tempdb;
+SQL
+            ;;
+        2)
+            # 替换数据库表数据
+            sqlite3 "$db_file" <<SQL
+DELETE FROM x_search_nodes;
+ATTACH DATABASE '$temp_db_file' AS tempdb;
+INSERT INTO main.x_search_nodes (parent, name, is_dir, size)
+SELECT parent, name, is_dir, size FROM tempdb.x_search_nodes;
+DETACH DATABASE tempdb;
+SQL
+            ;;
+        *)
+            echo "无效的选项，操作已取消。"
+            rm "$temp_db_file"
+            return
+            ;;
+    esac
+
+    # 在数据库中创建索引
+    sqlite3 "$db_file" <<SQL
+CREATE INDEX IF NOT EXISTS idx_x_search_nodes_parent ON x_search_nodes (parent);
+SQL
+
+    # 删除临时数据库文件
+    rm "$temp_db_file"
+    echo "操作完成，索引已更新。"
+}
+
 # 主循环
 while true; do
     show_menu
@@ -225,12 +375,15 @@ while true; do
         2)
             generate_strm_files
             ;;
+        3)
+            build_index_database
+            ;;
         0)
             echo "退出程序。"
             break
             ;;
         *)
-            echo "无效的选项，请输入 0、1 或 2。"
+            echo "无效的选项，请输入 0、1、2 或 3。"
             ;;
     esac
 done
