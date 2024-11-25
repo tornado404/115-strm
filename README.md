@@ -48,7 +48,7 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/m
 
 输入剔除选项（输入要剔除的目录层级数量）：
 
-这个主要的目的就是为了生成的strm结构能和alist的结构一只，我贴出我的示例
+这个主要的目的就是为了生成的strm结构能和alist的结构一致，我贴出我的示例
 我在alist挂载的是music这个目录，alist挂载是不显示music这个目录，直接显示music目录下的文件<br><br>
 ![image](https://github.com/user-attachments/assets/53fb66f0-93fb-4948-afe7-00c2554b4373)<br><br>
 
@@ -61,7 +61,7 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/m
 所以115自动生成的目录树对于alist来说，多了2层目录，所以这种情况下，目录层级数量输入2，看不懂就多实践<br><br>
 ![image](https://github.com/user-attachments/assets/9d0a45a1-42b1-4f56-87be-b337c9dbe3ba)<br><br>
 
-输入alist的ip地址+端口
+输入alist的ip地址+端口，等待处理后，strm文件创建到此结束
 
 ![image](https://github.com/user-attachments/assets/772c2ab2-a8d4-451e-be2d-36322fbcc2ee)<br><br>
 
