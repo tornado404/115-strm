@@ -29,7 +29,7 @@ https://115.com/115115/T496626.html
 # strm生成部分
 最好在存放目录树的地方执行脚本
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/main/115-strm-alist.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/main/115-strm.sh)"
 ```
 # 具体
 请选择操作：
