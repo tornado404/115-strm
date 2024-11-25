@@ -100,7 +100,7 @@ alsit版本不能太低，最好在v3.7以后的版本
 
 
 # 最后，转发请注明出处
-感谢ChatGPT-40提供的代码<br><br>
+感谢ChatGPT-4o提供的代码<br><br>
 联系https://t.me/gengpengw
 
 
