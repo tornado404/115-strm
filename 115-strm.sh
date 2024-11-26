@@ -161,7 +161,7 @@ generate_strm_files() {
     fi
 
     # 拼接 URL
-    alist_url="${alist_url%/}/d/${mount_path}"
+    alist_url="${alist_url%/}/d${mount_path}/"
 
     # 提示用户输入剔除选项，增加默认值为2
     echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
