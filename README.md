@@ -61,7 +61,8 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/m
 115目录树在生成的时候，会多自动多生成建立目录树文件的上一级目录
 也就是我生成music这个文件夹的目录树的时候，目录树会生成/alist/music
 所以115自动生成的目录树对于alist来说，多了2层目录，所以这种情况下，目录层级数量输入2，看不懂就多实践<br><br>
-![image](https://github.com/user-attachments/assets/c89ea3f3-aa39-4939-b272-4c8eb34f0e5b)<br><br>
+![image](https://github.com/user-attachments/assets/b898236f-336f-4e45-b52a-457d0e808f86)
+<br><br>
 
 输入alist的ip地址+端口，等待处理后，strm文件创建到此结束
 
@@ -79,7 +80,8 @@ alsit版本不能太低，最好在v3.7以后的版本,
 
 根据实际情况选择替换还是新增到数据路的索引表，这个只会修改数据库的索引表，不会进行其他操作<br><br>
 
-![image](https://github.com/user-attachments/assets/36d1aeeb-6af8-4f20-bf0b-bb2701884ca1)
+![image](https://github.com/user-attachments/assets/ac3cc2ff-81de-4db0-a52b-8c84c146d19e)
+
 <br><br>
 
 将data.db上传到alist目录，替换data.db，再次提醒data.db提前备份<br><br>
