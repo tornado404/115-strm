@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# 设置 UTF-8 环境
+# 设置 UTF-8 环境，确保字符编码一致
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-# 检查是否安装了 Python 3
+# 检查是否安装了 Python 3，若未安装则提示用户并退出
 if ! command -v python3 &> /dev/null; then
     echo "Python 3 未安装，请安装后再运行此脚本。"
     exit 1
 fi
 
-# 菜单函数
+# 显示主菜单的函数
 show_menu() {
     echo "请选择操作："
     echo "1: 将目录树转换为目录文件"
@@ -20,21 +20,22 @@ show_menu() {
     echo "0: 退出"
 }
 
-# 定义一个全局变量来存储生成的目录文件路径
+# 初始化全局变量，存储生成的目录文件路径和自定义扩展名
 generated_directory_file=""
 custom_extensions=""
 
-# 内置的媒体文件扩展名
+# 定义内置的媒体文件扩展名
 builtin_audio_extensions=("mp3" "flac" "wav" "aac" "ogg" "wma" "alac" "m4a" "aiff" "ape" "dsf" "dff" "wv" "pcm" "tta")
 builtin_video_extensions=("mp4" "mkv" "avi" "mov" "wmv" "flv" "webm" "vob" "mpg" "mpeg")
 builtin_image_extensions=("jpg" "jpeg" "png" "gif" "bmp" "tiff" "svg" "heic")
 builtin_other_extensions=("iso" "img" "bin" "nrg" "cue" "dvd" "lrc" "srt" "sub" "ssa" "ass" "vtt" "txt" "pdf" "doc" "docx" "csv" "xml" "new")
 
-# 目录树转换函数
+# 将目录树文件转换为目录文件的函数
 convert_directory_tree() {
     echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt"
     read -r directory_tree_file
 
+    # 检查目录树文件是否存在
     if [ ! -f "$directory_tree_file" ]; then
         echo "目录树文件不存在，请提供有效的文件路径。"
         return
@@ -44,14 +45,14 @@ convert_directory_tree() {
     directory_tree_dir=$(dirname "$directory_tree_file")
     directory_tree_base=$(basename "$directory_tree_file")
 
-    # 转换目录树文件为 UTF-8 格式（如有需要）
+    # 转换目录树文件为 UTF-8 格式，以便处理（如有需要）
     converted_file="$directory_tree_dir/$directory_tree_base.converted"
     iconv -f utf-16le -t utf-8 "$directory_tree_file" -o "$converted_file"
 
     # 生成的目录文件路径
     generated_directory_file="${converted_file}_目录文件.txt"
 
-    # 使用 Python 进行目录树解析
+    # 使用 Python 解析目录树
     python3 - <<EOF
 import os
 
@@ -59,32 +60,34 @@ def parse_directory_tree(file_path):
     current_path_stack = []
     directory_list_file = "${generated_directory_file}"
 
+    # 打开输入文件和输出文件
     with open(file_path, 'r', encoding='utf-8') as file, \
          open(directory_list_file, 'w', encoding='utf-8') as output_file:
         for line in file:
+            # 移除 BOM 和多余空白
             line = line.lstrip('\ufeff').rstrip()
-            line_depth = line.count('|')
-            item_name = line.split('|-')[-1].strip()
+            line_depth = line.count('|')  # 计算目录级别
+            item_name = line.split('|-')[-1].strip()  # 获取当前项名称
             if not item_name:
                 continue
             while len(current_path_stack) > line_depth:
-                current_path_stack.pop()
+                current_path_stack.pop()  # 移出多余的路径层级
             if len(current_path_stack) == line_depth:
                 if current_path_stack:
                     current_path_stack.pop()
-            current_path_stack.append(item_name)
-            full_path = '/' + '/'.join(current_path_stack)
-            output_file.write(full_path + '\n')
+            current_path_stack.append(item_name)  # 添加当前项到路径栈
+            full_path = '/' + '/'.join(current_path_stack)  # 构建完整路径
+            output_file.write(full_path + '\n')  # 写入输出文件
 
 parse_directory_tree("$converted_file")
 EOF
 
-    # 清理临时文件
+    # 清理临时转换文件
     rm "$converted_file"
     echo "目录文件已生成：$generated_directory_file"
 }
 
-# 自动选择可能的目录文件
+# 自动查找可能的目录文件
 find_possible_directory_file() {
     # 扫描当前目录中以 "_目录文件.txt" 结尾的文件
     possible_files=($(ls *_目录文件.txt 2> /dev/null | sort -V))
@@ -94,6 +97,7 @@ find_possible_directory_file() {
         return 1
     fi
 
+    # 提供选择已找到的目录文件或输入完整路径
     echo "找到以下目录文件，请选择："
     select file in "${possible_files[@]}" "输入完整路径"; do
         case $file in
@@ -116,6 +120,7 @@ find_possible_directory_file() {
 
 # 生成 .strm 文件的函数
 generate_strm_files() {
+    # 检查是否已有生成的目录文件
     if [ -z "$generated_directory_file" ]; then
         if ! find_possible_directory_file; then
             return
@@ -127,25 +132,30 @@ generate_strm_files() {
     read -r strm_save_path
     mkdir -p "$strm_save_path"
 
-    # 提示用户输入剔除选项
-    echo "请输入剔除选项（输入要剔除的目录层级数量）："
-    read -r exclude_option
-
-    # 确保 exclude_option 是一个非负整数
-    if ! [[ "$exclude_option" =~ ^[0-9]+$ ]]; then
-        echo "无效的选项，请输入一个非负整数。"
-        return
-    fi
-
-    # 提示用户输入URL前缀
+    # 提示用户输入 alist 的地址加端口
     echo "请输入alist的地址+端口（例如：http://abc.com:5244）："
     read -r alist_url
-    # 确保URL的格式正确，以 / 结尾
+    # 确保 URL 的格式正确，以 / 结尾
     if [[ "$alist_url" != */ ]]; then
         alist_url="$alist_url/"
     fi
-    alist_url="${alist_url}d/"
-    
+
+    # 提示用户输入挂载路径信息
+    echo "请输入alist存储里对应的挂载路径信息："
+    read -r mount_path
+    # 移除挂载路径开头的斜杠（如果有）
+    if [[ "$mount_path" == /* ]]; then
+        mount_path="${mount_path:1}"
+    fi
+    mount_path="${mount_path}/"  # 确保挂载路径以 / 结尾
+
+    alist_url="${alist_url}d/${mount_path}"
+
+    # 提示用户输入剔除选项，增加默认值为2
+    echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
+    read -r exclude_option
+    exclude_option=${exclude_option:-2}  # 设置默认值为2
+
     # 使用 Python 生成 .strm 文件并处理多线程与进度显示
     python3 - <<EOF
 import os
@@ -154,7 +164,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.parse
 import threading
 
-# 定义常见的媒体文件扩展名
+# 定义常见的媒体文件扩展名，并合并用户自定义扩展名
 media_extensions = set([
     "mp3", "flac", "wav", "aac", "ogg", "wma", "alac", "m4a",
     "aiff", "ape", "dsf", "dff", "wv", "pcm", "tta",
@@ -164,11 +174,10 @@ media_extensions = set([
     "lrc", "srt", "sub", "ssa", "ass", "vtt", "txt",
     "pdf", "doc", "docx", "csv", "xml", "new"
 ])
-
-# 合并用户自定义扩展名
 custom_extensions = set("${custom_extensions}".split())
 media_extensions.update(custom_extensions)
 
+# 设定变量
 exclude_option = $exclude_option
 alist_url = "$alist_url"
 strm_save_path = "$strm_save_path"
@@ -203,18 +212,20 @@ def process_line(line):
     is_dir = 0 if file_extension in media_extensions else 1
 
     if is_dir == 0:
-        file_name = os.path.basename(adjusted_path)
-        parent_path = os.path.dirname(adjusted_path)
+        file_name = os.path.basename(adjusted_path)  # 获取文件名
+        parent_path = os.path.dirname(adjusted_path)  # 获取父目录路径
         
-        os.makedirs(os.path.join(strm_save_path, parent_path), exist_ok=True)
+        os.makedirs(os.path.join(strm_save_path, parent_path), exist_ok=True)  # 创建必要的目录
         
-        encoded_path = urllib.parse.quote(f"{parent_path}/{file_name}")
-        # 修改点：包括完整文件名（含扩展名）用于 .strm 文件的命名
-        strm_file_path = os.path.join(strm_save_path, parent_path, f"{file_name}.strm")
+        encoded_path = urllib.parse.quote(f"{parent_path}/{file_name}")  # 对路径进行 URL 编码
+       
+        strm_file_path = os.path.join(strm_save_path, parent_path, f"{file_name}.strm")  # 生成 .strm 文件路径
         
+        # 写入 .strm 文件
         with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
             strm_file.write(f"{alist_url}{encoded_path}")
     
+    # 更新进度条
     with lock:
         processed_lines += 1
         elapsed_time = time.time() - start_time
@@ -228,6 +239,7 @@ with open(generated_directory_file, 'r', encoding='utf-8') as file:
 # 根据机器性能合理设置线程池大小
 max_workers = min(4, os.cpu_count() or 1)
 
+# 使用线程池并发处理行数据
 with ThreadPoolExecutor(max_workers=max_workers) as executor:
     futures = [executor.submit(process_line, line) for line in lines]
     for _ in as_completed(futures):
@@ -239,6 +251,7 @@ EOF
 
 # 建立 alist 索引数据库的函数
 build_index_database() {
+    # 检查是否有生成的目录文件
     if [ -z "$generated_directory_file" ]; then
         if ! find_possible_directory_file; then
             return
@@ -266,14 +279,25 @@ build_index_database() {
         esac
     done
 
-    echo "请输入剔除选项（输入要剔除的目录层级数量）："
+    # 提示用户输入挂载路径信息
+    echo "请输入alist存储里对应的挂载路径信息："
+    read -r mount_path
+
+    # 检查挂载路径的有效性（必须以 / 开头）
+    while [[ "$mount_path" != /* ]]; do
+        echo "路径输入错误，请输入以 / 开头的完整路径："
+        read -r mount_path
+    done
+
+    # 去除挂载路径末尾的斜杠（如果有），保障路径的一致性
+    mount_path="${mount_path%/}"
+
+    # 提示用户输入剔除选项，增加默认值为2
+    echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
     read -r exclude_option
+    exclude_option=${exclude_option:-2}  # 设置默认值为2
 
-    if ! [[ "$exclude_option" =~ ^[0-9]+$ ]]; then
-        echo "无效的选项，请输入一个非负整数。"
-        return
-    fi
-
+    # 创建临时数据库文件以存储处理结果
     temp_db_file=$(mktemp --suffix=.db)
     
     python3 - <<EOF
@@ -281,18 +305,22 @@ import sqlite3
 import os
 import time
 
+# 设置变量
 exclude_option = $exclude_option
 generated_directory_file = "$generated_directory_file"
+mount_path = "$mount_path"
 temp_db_file = "$temp_db_file"
 
 def is_directory(name):
     # 判断路径是否为文件夹
     return '.' not in name
 
-def insert_data_into_temp_db(file_path, db_path, exclude_level):
+# 将数据插入到临时数据库中
+def insert_data_into_temp_db(file_path, db_path, exclude_level, mount_path):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
+    # 创建表结构
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS x_search_nodes (
         parent TEXT,
@@ -316,12 +344,13 @@ def insert_data_into_temp_db(file_path, db_path, exclude_level):
             if len(path_parts) < 1:
                 continue
 
-            parent = '/' + '/'.join(path_parts[:-1])
+            # 新增目录层级加到剔除目录层级后的信息前面
+            parent = mount_path + '/' + '/'.join(path_parts[:-1])
             name = path_parts[-1]
             
-            # 更新 is_dir 判断逻辑
             is_dir = 1 if is_directory(name) else 0
 
+            # 插入数据到表中
             cursor.execute('INSERT INTO x_search_nodes (parent, name, is_dir, size) VALUES (?, ?, ?, 0)', (parent, name, is_dir))
             
             processed_lines += 1
@@ -330,11 +359,11 @@ def insert_data_into_temp_db(file_path, db_path, exclude_level):
             progress_percentage = processed_lines / valid_lines if valid_lines else 0
             print(f"\r总文件：{total_lines}，剔除数：{exclude_level}，有效数：{valid_lines}，已处理：{processed_lines}，进度：{progress_percentage:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
 
-    print()  # 换行
+    print()  # 换行显示
     conn.commit()
     conn.close()
 
-insert_data_into_temp_db(generated_directory_file, temp_db_file, exclude_option)
+insert_data_into_temp_db(generated_directory_file, temp_db_file, exclude_option, mount_path)
 EOF
 
     echo "数据已处理完毕。请选择操作："
@@ -393,7 +422,7 @@ print_builtin_formats() {
 # 高级配置函数
 advanced_configuration() {
     echo "由于115目录树没有对文件和文件夹进行定义，本脚本内置了常用文件格式进行文件和文件夹的判断。"
-    echo "如果你处理的文件格式不常见，你可以在这里添加，多个格式请使用空格分隔，不需要一个个对，脚本自动会去重，例如：mp3 mp4"，
+    echo "如果你处理的文件格式不常见，你可以在这里添加，多个格式请使用空格分隔，不需要一个个对，脚本自动会去重，例如：mp3 mp4"
     echo "退回主菜单请输入0，打印脚本内置格式请输入1。"
     read -r user_input
 
@@ -417,28 +446,35 @@ advanced_configuration() {
     echo "已添加的自定义扩展名：$custom_extensions"
 }
 
-# 主循环
+# 主循环，持续显示菜单并处理用户输入
 while true; do
     show_menu
+    # 读取用户选择
     read -r choice
     case $choice in
         1)
+            # 选择1：将目录树转换为目录文件
             convert_directory_tree
             ;;
         2)
+            # 选择2：生成 .strm 文件
             generate_strm_files
             ;;
         3)
+            # 选择3：建立 alist 索引数据库
             build_index_database
             ;;
         4)
+            # 选择4：进行高级配置，添加非标准文件格式
             advanced_configuration
             ;;
         0)
+            # 选择0：退出程序
             echo "退出程序。"
             break
             ;;
         *)
+            # 处理无效输入
             echo "无效的选项，请输入 0、1、2、3 或 4。"
             ;;
     esac
