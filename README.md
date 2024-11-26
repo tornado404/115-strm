@@ -82,12 +82,14 @@ alsit版本不能太低，最好在v3.37.x以后的版本,
 
 在主页面选择3
 脚本会自动获取当前的文件提供选择,剔除路径和新增路劲跟生成strm同理<br><br>
-![image](https://github.com/user-attachments/assets/d056c3ae-7d56-4c63-bfe5-1cc07dde6520)
+![image](https://github.com/user-attachments/assets/4db9147f-c17d-4911-9e0d-970813751e79)
+
 <br><br>
 
 根据实际情况选择替换还是新增到数据路的索引表，这个只会修改数据库的索引表，不会进行其他操作<br><br>
 
-![image](https://github.com/user-attachments/assets/ac3cc2ff-81de-4db0-a52b-8c84c146d19e)
+![image](https://github.com/user-attachments/assets/fe790ea3-9ea2-497d-b925-d93752e1e08f)
+
 
 <br><br>
 
