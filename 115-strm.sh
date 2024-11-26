@@ -140,28 +140,28 @@ generate_strm_files() {
         alist_url="$alist_url/"
     fi
 
-# 提示用户输入挂载路径信息
-echo "请输入alist存储里对应的挂载路径信息："
-read -r mount_path
+    # 提示用户输入挂载路径信息
+    echo "请输入alist存储里对应的挂载路径信息："
+    read -r mount_path
 
-# 处理挂载路径的不同输入情况
-if [[ "$mount_path" == "/" ]]; then
-    # 如果用户只输入了 /
-    mount_path=""
-elif [[ -n "$mount_path" ]]; then
-    # 如果用户输入了信息且不是空的也不是只有 /
-    # 检查第一个字符是否是 /
-    if [[ "${mount_path:0:1}" != "/" ]]; then
-        mount_path="/${mount_path}"
+    # 处理挂载路径的不同输入情况
+    if [[ "$mount_path" == "/" ]]; then
+        # 如果用户只输入了 /
+        mount_path=""
+    elif [[ -n "$mount_path" ]]; then
+        # 如果用户输入了信息且不是空的也不是只有 /
+        # 检查第一个字符是否是 /
+        if [[ "${mount_path:0:1}" != "/" ]]; then
+            mount_path="/${mount_path}"
+        fi
+        # 检查最后一个字符是否是 /
+        if [[ "${mount_path: -1}" == "/" ]]; then
+            mount_path="${mount_path%/}"
+        fi
     fi
-    # 检查最后一个字符是否是 /
-    if [[ "${mount_path: -1}" == "/" ]]; then
-        mount_path="${mount_path%/}"
-    fi
-fi
 
-# 拼接 URL
-alist_url="${alist_url%/}/d/${mount_path}"
+    # 拼接 URL
+    alist_url="${alist_url%/}/d${mount_path}"
 
     # 提示用户输入剔除选项，增加默认值为2
     echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
