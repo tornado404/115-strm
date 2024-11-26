@@ -16,11 +16,19 @@ show_menu() {
     echo "1: 将目录树转换为目录文件"
     echo "2: 生成 .strm 文件"
     echo "3: 建立alist索引数据库"
+    echo "4: 高级配置（处理非常见媒体文件时使用）"
     echo "0: 退出"
 }
 
 # 定义一个全局变量来存储生成的目录文件路径
 generated_directory_file=""
+custom_extensions=""
+
+# 内置的媒体文件扩展名
+builtin_audio_extensions=("mp3" "flac" "wav" "aac" "ogg" "wma" "alac" "m4a" "aiff" "ape" "dsf" "dff" "wv" "pcm" "tta")
+builtin_video_extensions=("mp4" "mkv" "avi" "mov" "wmv" "flv" "webm" "vob" "mpg" "mpeg")
+builtin_image_extensions=("jpg" "jpeg" "png" "gif" "bmp" "tiff" "svg" "heic")
+builtin_other_extensions=("iso" "img" "bin" "nrg" "cue" "dvd" "lrc" "srt" "sub" "ssa" "ass" "vtt" "txt" "pdf" "doc" "docx" "csv" "xml" "new")
 
 # 目录树转换函数
 convert_directory_tree() {
@@ -156,6 +164,10 @@ media_extensions = set([
     "lrc", "srt", "sub", "ssa", "ass", "vtt", "txt",
     "pdf", "doc", "docx", "csv", "xml", "new"
 ])
+
+# 合并用户自定义扩展名
+custom_extensions = set("${custom_extensions}".split())
+media_extensions.update(custom_extensions)
 
 exclude_option = $exclude_option
 alist_url = "$alist_url"
@@ -364,6 +376,42 @@ SQL
     echo "操作完成，索引已更新。"
 }
 
+# 打印内置格式的函数
+print_builtin_formats() {
+    echo "内置的媒体文件格式如下："
+    echo "音频格式: ${builtin_audio_extensions[*]// /、}"
+    echo "视频格式: ${builtin_video_extensions[*]// /、}"
+    echo "图片格式: ${builtin_image_extensions[*]// /、}"
+    echo "其他格式: ${builtin_other_extensions[*]// /、}"
+}
+
+# 高级配置函数
+advanced_configuration() {
+    echo "由于115目录树没有对文件和文件夹进行定义，本脚本内置了常用文件格式进行文件和文件夹的判断。"
+    echo "如果你处理的文件格式不常见，你可以在这里添加，多个格式请使用空格分隔，不需要一个个对，脚本自动会去重，例如：mp3 mp4"，
+    echo "退回主菜单请输入0，打印脚本内置格式请输入1。"
+    read -r user_input
+
+    if [[ "$user_input" == "0" ]]; then
+        return
+    elif [[ "$user_input" == "1" ]]; then
+        print_builtin_formats
+        return
+    fi
+
+    # 转换为小写并去重
+    new_extensions=$(echo "$user_input" | tr ' ' '\n' | tr '[:upper:]' '[:lower:]' | sort -u)
+    
+    # 更新全局变量
+    for ext in $new_extensions; do
+        if ! echo "$custom_extensions" | grep -qw "$ext"; then
+            custom_extensions="$custom_extensions $ext"
+        fi
+    done
+
+    echo "已添加的自定义扩展名：$custom_extensions"
+}
+
 # 主循环
 while true; do
     show_menu
@@ -378,12 +426,15 @@ while true; do
         3)
             build_index_database
             ;;
+        4)
+            advanced_configuration
+            ;;
         0)
             echo "退出程序。"
             break
             ;;
         *)
-            echo "无效的选项，请输入 0、1、2 或 3。"
+            echo "无效的选项，请输入 0、1、2、3 或 4。"
             ;;
     esac
 done
