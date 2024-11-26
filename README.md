@@ -69,7 +69,7 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/m
 
 ## 3: 建立alist索引数据库
 
-alsit版本不能太低，最好在v3.7以后的版本,
+alsit版本不能太低，最好在v3.37.x以后的版本,
 
 将alsit停止后，备份data.db数据库，将data.db数据库文件存放到脚本执行的目录
 
