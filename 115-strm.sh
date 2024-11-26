@@ -320,7 +320,7 @@ def insert_data_into_temp_db(file_path, db_path, exclude_level):
             name = path_parts[-1]
             
             # 更新 is_dir 判断逻辑
-            is_dir = 0 if is_directory(name) else 1
+            is_dir = 1 if is_directory(name) else 0
 
             cursor.execute('INSERT INTO x_search_nodes (parent, name, is_dir, size) VALUES (?, ?, ?, 0)', (parent, name, is_dir))
             
