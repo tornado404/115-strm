@@ -16,16 +16,16 @@ https://115.com/s/swhspho33xj?password=0000#
 
 
 # 测试环境
-系统ubuntu20
-安装好python
-执行需要sudo权限
-
+系统ubuntu20<br><br>
+安装好python<br><br>
+执行需要sudo权限<br><br>
+alistV3.39.1（alist需要关闭签名，在管理-设置-全局-关闭签名所有，在储存-挂载的储存-启用签名选择关闭）<br><br>
 # 生成文件的目录树
 最好是将要处理的文件放在一个目录，生成教程<br><br>
 https://115.com/115115/T496626.html<br><br>
 
 下载后将目录树放到ubuntu的目录
-# strm生成部分
+# 脚本
 最好在存放目录树的地方执行脚本
 ```bash
 sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/main/115-strm.sh)"
@@ -46,25 +46,32 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/m
 
 ## 2: 生成 .strm 文件
 输入 .strm 文件保存的路径<br><br>
-![image](https://github.com/user-attachments/assets/e3a53987-e1db-45c3-930a-5c9f54847972)
+![image](https://github.com/user-attachments/assets/e3a53987-e1db-45c3-930a-5c9f54847972)<br><br>
 
-输入剔除选项（输入要剔除的目录层级数量）：<br><br>
-看以下的解释后输入<br><br>
-这个的目的就是为了生成的strm结构能和alist的结构一致，我贴出我的示例<br><br>
-我在alist挂载的是music这个目录，alist挂载是不显示music这个目录，直接显示music目录下的文件<br><br>
-![image](https://github.com/user-attachments/assets/53fb66f0-93fb-4948-afe7-00c2554b4373)<br><br>
+输入alist的ip地址+端口<br><br>
+![image](https://github.com/user-attachments/assets/86c8cb82-c4ee-4fcb-893a-33ad43d4814e)<br><br>
+请输入alist存储里对应的挂载路径信息<br><br>
+![image](https://github.com/user-attachments/assets/045fb0d8-68ab-4c01-b296-af8355b15a98)<br><br>
+请输入剔除选项（输入要剔除的目录层级数量，默认为2）多了或者少了，自己调整一下，下面会解释原理<br><br>
+![image](https://github.com/user-attachments/assets/2604da02-0782-4853-a8e3-fd97d88033ce)<br><br>
 
-比如我的115目录是/alist/music/A.歌手歌单，要处理的是/music这个文件夹<br><br>
+剔除的目录层级的解释，目的就是为了生成的strm结构能和alist的结构一致，不想了解直接默认2，<br><br>
+我贴出我的示例，我在115，长按电视剧文件夹，生成目录树，alist根文件夹ID，也是电视剧这个目录的id
+![image](https://github.com/user-attachments/assets/7238a63c-f17b-475a-97c1-baaafa6ec20f)<br><br>
 
-![image](https://github.com/user-attachments/assets/eefc6cd6-e6b1-49b3-b89e-30e14f042e59)<br><br>
+我在alist挂载的是/每日更新/电视剧/国产剧（115）这个目录<br><br>
+![image](https://github.com/user-attachments/assets/0b951ba5-9a1c-45f2-94bc-34e61b5a351c)<br><br>
+
+alist挂载是不显示目录的id的文件名的，所以直接显示115网盘电视剧目录下的文件<br><br>
+![image](https://github.com/user-attachments/assets/2480984a-95ec-4eb6-87d1-96c343ee61c4)<br><br>
+
 
 115目录树在生成的时候，会多自动多生成建立目录树文件的上一级目录
-也就是我生成music这个文件夹的目录树的时候，目录树会生成/alist/music
-所以115自动生成的目录树对于alist来说，多了2层目录，所以这种情况下，目录层级数量输入2，看不懂就多实践<br><br>
-![image](https://github.com/user-attachments/assets/b898236f-336f-4e45-b52a-457d0e808f86)
-<br><br>
+也就是我生成电视剧这个文件夹的目录树的时候，目录树会生成/我的资源/电视剧
+所以115自动生成的目录树对于alist来说，多了2层目录，这种情况下，默认剔除2层目录，看不懂就多实践<br><br>
 
-输入alist的ip地址+端口，等待处理后，strm文件创建到此结束
+等待处理后，strm文件创建到此结束<br><br>
+![image](https://github.com/user-attachments/assets/33688331-776d-4e6c-99e7-877498cb51cd)
 
 
 ## 3: 建立alist索引数据库
@@ -74,7 +81,7 @@ alsit版本不能太低，最好在v3.37.x以后的版本,
 将alsit停止后，备份data.db数据库，将data.db数据库文件存放到脚本执行的目录
 
 在主页面选择3
-脚本会自动获取当前的文件提供选择,剔除路径和strm同理<br><br>
+脚本会自动获取当前的文件提供选择,剔除路径和新增路劲跟生成strm同理<br><br>
 ![image](https://github.com/user-attachments/assets/d056c3ae-7d56-4c63-bfe5-1cc07dde6520)
 <br><br>
 
