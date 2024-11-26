@@ -177,6 +177,8 @@ generated_directory_file = "$generated_directory_file"
 # 获取文件行数
 with open(generated_directory_file, 'r', encoding='utf-8') as f:
     total_lines = sum(1 for _ in f)
+    f.seek(0)
+    valid_lines = total_lines - exclude_option
 
 processed_lines = 0
 lock = threading.Lock()
@@ -217,7 +219,8 @@ def process_line(line):
         processed_lines += 1
         elapsed_time = time.time() - start_time
         minutes, seconds = divmod(int(elapsed_time), 60)
-        print(f"\r总文件：{total_lines}，已处理：{processed_lines}，进度：{processed_lines / total_lines:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
+        progress_percentage = processed_lines / valid_lines if valid_lines else 0
+        print(f"\r总文件：{total_lines}，剔除数：{exclude_option}，有效数：{valid_lines}，已处理：{processed_lines}，进度：{progress_percentage:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
 
 with open(generated_directory_file, 'r', encoding='utf-8') as file:
     lines = file.readlines()
@@ -301,7 +304,8 @@ def insert_data_into_temp_db(file_path, db_path, exclude_level):
 
     with open(file_path, 'r', encoding='utf-8') as file:
         total_lines = sum(1 for _ in file)
-        file.seek(0)  # 重置文件指针
+        file.seek(0)
+        valid_lines = total_lines - exclude_level
         processed_lines = 0
         start_time = time.time()
 
@@ -323,7 +327,8 @@ def insert_data_into_temp_db(file_path, db_path, exclude_level):
             processed_lines += 1
             elapsed_time = time.time() - start_time
             minutes, seconds = divmod(int(elapsed_time), 60)
-            print(f"\r总文件：{total_lines}，已处理：{processed_lines}，进度：{processed_lines / total_lines:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
+            progress_percentage = processed_lines / valid_lines if valid_lines else 0
+            print(f"\r总文件：{total_lines}，剔除数：{exclude_level}，有效数：{valid_lines}，已处理：{processed_lines}，进度：{progress_percentage:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
 
     print()  # 换行
     conn.commit()
