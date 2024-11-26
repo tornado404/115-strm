@@ -81,7 +81,7 @@ def parse_directory_tree(file_path):
 
 parse_directory_tree("$converted_file")
 EOF
-
+    sed -i 's/^.\{4\}/\//' "${converted_file}_目录文件.txt"
     # 清理临时转换文件
     rm "$converted_file"
     echo "目录文件已生成：$generated_directory_file"
