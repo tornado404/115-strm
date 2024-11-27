@@ -11,7 +11,7 @@ config_file="/var/tmp/115-strm.conf"
 read_config() {
     if [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
-        . "$config_file"
+        。 "$config_file"
     fi
 }
 
@@ -512,6 +512,7 @@ create_auto_update_script() {
     echo "该功能的实现，需要在每次更新时，在115手动生成目录树，并且重命名为固定的文件名，再将目录树文件移动到，挂载到alist的115目录，让脚本可以通过alist下载到目录树文件"
     echo "比如我将挂载115的目录/影视 挂载到alist，那我生成目录树后，就放到/影视 的目录或者子目录都可以，或者你也可以存放到其他平台，前提条件是下载链接要固定。"
     echo "因为脚本要获取到你在115生成的目录树，才能进行更新strm文件和alist数据库，你现在可以生成一个目录树，并且重命名，可以使用目录树.txt，以后生成的都要命名为这个。"
+    echo "目前之支持strm自动更新，2和3待开发"
 
 
     echo "1: 创建strm文件更新脚本"
