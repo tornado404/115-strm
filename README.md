@@ -19,8 +19,11 @@ https://115.com/s/swhspho33xj?password=0000#
 系统ubuntu20<br><br>
 安装好python<br><br>
 执行需要sudo权限<br><br>
-alistV3.39.1（alist需要关闭签名，在管理-设置-全局-关闭签名所有，在储存-挂载的储存-启用签名选择关闭）<br><br>
-emby版本： 4.9.0.30 测试版，播放音乐，需要关闭音频转码，在设置-用户-编辑-如有必要，在媒体播放期间允许音频转码 
+alistV3.39.1<br><br>
+使用strm，alist需要关闭签名，如果你不使用strm，只是建立alist的搜索数据库，则不需要关闭签名<br><br>
+关闭签名方法:在管理-设置-全局-关闭签名所有，在储存-挂载的储存-启用签名选择关闭<br><br>
+emby版本： 4.9.0.30 测试版<br><br>
+播放音乐，需要关闭音频转码，在设置-用户-编辑-如有必要，在媒体播放期间允许音频转码 <br><br>
 # 生成文件的目录树
 最好是将要处理的文件放在一个目录，生成教程<br><br>
 https://115.com/115115/T496626.html<br><br>
@@ -74,6 +77,7 @@ alist挂载是不显示目录的id的文件名的，所以直接显示115网盘�
 等待处理后，strm文件创建到此结束<br><br>
 ![image](https://github.com/user-attachments/assets/33688331-776d-4e6c-99e7-877498cb51cd)<br><br>
 strm文件测试，随便打开一个strm文件，复制链接粘贴到浏览器打开，能下载就是没问题的<br><br>
+
 ![image](https://github.com/user-attachments/assets/dd9a8fd0-9b0e-4c75-ad6e-d217d27e4fc9)<br><br>
 
 
