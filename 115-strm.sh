@@ -4,11 +4,37 @@
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
+# 配置文件路径
+config_file="/var/tmp/115-strm.conf"
+
+# 读取配置文件函数
+read_config() {
+    if [ -f "$config_file" ]; then
+        # shellcheck source=/dev/null
+        . "$config_file"
+    fi
+}
+
+# 保存配置文件函数
+save_config() {
+    cat <<EOF > "$config_file"
+directory_tree_file="$directory_tree_file"
+strm_save_path="$strm_save_path"
+alist_url="$alist_url"
+mount_path="$mount_path"
+exclude_option="$exclude_option"
+custom_extensions="$custom_extensions"
+EOF
+}
+
 # 检查是否安装了 Python 3，若未安装则提示用户并退出
 if ! command -v python3 &> /dev/null; then
     echo "Python 3 未安装，请安装后再运行此脚本。"
     exit 1
 fi
+
+# 初始化配置
+read_config
 
 # 显示主菜单的函数
 show_menu() {
@@ -21,8 +47,8 @@ show_menu() {
 }
 
 # 初始化全局变量，存储生成的目录文件路径和自定义扩展名
-generated_directory_file=""
-custom_extensions=""
+generated_directory_file="${generated_directory_file:-}"
+custom_extensions="${custom_extensions:-}"
 
 # 定义内置的媒体文件扩展名
 builtin_audio_extensions=("mp3" "flac" "wav" "aac" "ogg" "wma" "alac" "m4a" "aiff" "ape" "dsf" "dff" "wv" "pcm" "tta")
@@ -32,8 +58,13 @@ builtin_other_extensions=("iso" "img" "bin" "nrg" "cue" "dvd" "lrc" "srt" "sub" 
 
 # 将目录树文件转换为目录文件的函数
 convert_directory_tree() {
-    echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt"
-    read -r directory_tree_file
+    if [ -n "$directory_tree_file" ]; then
+        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt，上次配置:${directory_tree_file}，回车确认："
+    else
+        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt："
+    fi
+    read -r input_directory_tree_file
+    directory_tree_file="${input_directory_tree_file:-$directory_tree_file}"
 
     # 检查目录树文件是否存在
     if [ ! -f "$directory_tree_file" ]; then
@@ -81,10 +112,15 @@ def parse_directory_tree(file_path):
 
 parse_directory_tree("$converted_file")
 EOF
+    # 使用 sed 在 bash 中处理生成文件，替换每行开头的 "/|——" 为 "/"
     sed -i 's/^.\{4\}/\//' "${converted_file}_目录文件.txt"
+
     # 清理临时转换文件
     rm "$converted_file"
     echo "目录文件已生成：$generated_directory_file"
+
+    # 保存配置
+    save_config
 }
 
 # 自动查找可能的目录文件
@@ -128,28 +164,42 @@ generate_strm_files() {
     fi
 
     # 提示用户输入用于保存 .strm 文件的路径
-    echo "请输入 .strm 文件保存的路径："
-    read -r strm_save_path
+    if [ -n "$strm_save_path" ]; then
+        echo "请输入 .strm 文件保存的路径，上次配置:${strm_save_path}，回车确认："
+    else
+        echo "请输入 .strm 文件保存的路径："
+    fi
+    read -r input_strm_save_path
+    strm_save_path="${input_strm_save_path:-$strm_save_path}"
     mkdir -p "$strm_save_path"
 
     # 提示用户输入 alist 的地址加端口
-    echo "请输入alist的地址+端口（例如：http://abc.com:5244）："
-    read -r alist_url
+    if [ -n "$alist_url" ]; then
+        echo "请输入alist的地址+端口（例如：http://abc.com:5244），上次配置:${alist_url}，回车确认："
+    else
+        echo "请输入alist的地址+端口（例如：http://abc.com:5244）："
+    fi
+    read -r input_alist_url
+    alist_url="${input_alist_url:-$alist_url}"
     # 确保 URL 的格式正确，以 / 结尾
     if [[ "$alist_url" != */ ]]; then
         alist_url="$alist_url/"
     fi
 
     # 提示用户输入挂载路径信息
-    echo "请输入alist存储里对应的挂载路径信息："
-    read -r mount_path
+    decoded_mount_path=$(python3 -c "import urllib.parse; print(urllib.parse.unquote('${mount_path}'))")
+    if [ -n "$decoded_mount_path" ]; then
+        echo "请输入alist存储里对应的挂载路径信息，上次配置:${decoded_mount_path}，回车确认："
+    else
+        echo "请输入alist存储里对应的挂载路径信息："
+    fi
+    read -r input_mount_path
+    mount_path="${input_mount_path:-$mount_path}"
 
     # 处理挂载路径的不同输入情况
     if [[ "$mount_path" == "/" ]]; then
-        # 如果用户只输入了 /
         mount_path=""
     elif [[ -n "$mount_path" ]]; then
-        # 如果用户输入了信息且不是空的也不是只有 /
         # 检查第一个字符是否是 /
         if [[ "${mount_path:0:1}" != "/" ]]; then
             mount_path="/${mount_path}"
@@ -164,12 +214,16 @@ generate_strm_files() {
     encoded_mount_path=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${mount_path}'))")
 
     # 拼接 URL
-    alist_url="${alist_url%/}/d${encoded_mount_path}/"
+    full_alist_url="${alist_url%/}/d${encoded_mount_path}/"
 
     # 提示用户输入剔除选项，增加默认值为2
-    echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
-    read -r exclude_option
-    exclude_option=${exclude_option:-2}  # 设置默认值为2
+    if [ -n "$exclude_option" ]; then
+        echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2），上次配置:${exclude_option}，回车确认："
+    else
+        echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
+    fi
+    read -r input_exclude_option
+    exclude_option=${input_exclude_option:-$exclude_option}
 
     # 使用 Python 生成 .strm 文件并处理多线程与进度显示
     python3 - <<EOF
@@ -194,7 +248,7 @@ media_extensions.update(custom_extensions)
 
 # 设定变量
 exclude_option = $exclude_option
-alist_url = "$alist_url"
+alist_url = "$full_alist_url"
 strm_save_path = "$strm_save_path"
 generated_directory_file = "$generated_directory_file"
 
@@ -262,6 +316,9 @@ with ThreadPoolExecutor(max_workers=max_workers) as executor:
 
 print("\n已完成 .strm 文件生成。")
 EOF
+
+    # 保存配置
+    save_config
 }
 
 # 建立 alist 索引数据库的函数
@@ -273,19 +330,20 @@ build_index_database() {
         fi
     fi
 
-    echo "建议数据库备份后操作，请选择数据库文件:"
-    select db_file in *.db "输入完整路径"; do
-        case $db_file in
+    echo "建议数据库备份后操作，请选择数据库文件，上次配置:${db_file:-无}，回车确认"
+    select input_db_file in *.db "输入完整路径"; do
+        case $input_db_file in
             "输入完整路径")
                 echo "请输入数据库文件的完整路径："
-                read -r db_file
-                if [ ! -f "$db_file" ]; then
+                read -r input_db_file
+                if [ ! -f "$input_db_file" ]; then
                     echo "文件不存在，请重新输入。"
                     return
                 fi
                 break
                 ;;
             *.db)
+                db_file=$input_db_file
                 break
                 ;;
             *)
@@ -295,8 +353,14 @@ build_index_database() {
     done
 
     # 提示用户输入挂载路径信息
-    echo "请输入alist存储里对应的挂载路径信息："
-    read -r mount_path
+    decoded_mount_path=$(python3 -c "import urllib.parse; print(urllib.parse.unquote('${mount_path}'))")
+    if [ -n "$decoded_mount_path" ]; then
+        echo "请输入alist存储里对应的挂载路径信息，上次配置:${decoded_mount_path}，回车确认："
+    else
+        echo "请输入alist存储里对应的挂载路径信息："
+    fi
+    read -r input_mount_path
+    mount_path="${input_mount_path:-$mount_path}"
 
     # 检查挂载路径的有效性（必须以 / 开头）
     while [[ "$mount_path" != /* ]]; do
@@ -308,9 +372,13 @@ build_index_database() {
     mount_path="${mount_path%/}"
 
     # 提示用户输入剔除选项，增加默认值为2
-    echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
-    read -r exclude_option
-    exclude_option=${exclude_option:-2}  # 设置默认值为2
+    if [ -n "$exclude_option" ]; then
+        echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2），上次配置:${exclude_option}，回车确认："
+    else
+        echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
+    fi
+    read -r input_exclude_option
+    exclude_option=${input_exclude_option:-$exclude_option}
 
     # 创建临时数据库文件以存储处理结果
     temp_db_file=$(mktemp --suffix=.db)
@@ -423,7 +491,9 @@ SQL
     # 删除临时数据库文件
     rm "$temp_db_file"
     echo "操作完成，索引已更新。"
-    echo "请将更新的数据库文件，替换alist原有data.db文件，替换过程需要停止docker"
+
+    # 保存配置
+    save_config
 }
 
 # 打印内置格式的函数
@@ -460,6 +530,9 @@ advanced_configuration() {
     done
 
     echo "已添加的自定义扩展名：$custom_extensions"
+
+    # 保存配置
+    save_config
 }
 
 # 主循环，持续显示菜单并处理用户输入
