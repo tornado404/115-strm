@@ -423,6 +423,7 @@ SQL
     # 删除临时数据库文件
     rm "$temp_db_file"
     echo "操作完成，索引已更新。"
+    echo "请将更新的数据库文件，替换alist原有data.db文件，替换过程需要停止docker"
 }
 
 # 打印内置格式的函数
