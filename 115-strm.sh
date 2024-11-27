@@ -42,7 +42,8 @@ show_menu() {
     echo "1: 将目录树转换为目录文件"
     echo "2: 生成 .strm 文件"
     echo "3: 建立alist索引数据库"
-    echo "4: 高级配置（处理非常见媒体文件时使用）"
+    echo "4: 创建自动更新脚本"
+    echo "5: 高级配置（处理非常见媒体文件时使用）"
     echo "0: 退出"
 }
 
@@ -505,6 +506,170 @@ print_builtin_formats() {
     echo "其他格式: ${builtin_other_extensions[*]// /、}"
 }
 
+
+#自动更新脚本
+create_auto_update_script() {
+    echo "该功能的实现，需要在每次更新时，在115手动生成目录树，并且重命名为固定的文件名，再将目录树文件移动到，挂载到alist的115目录，让脚本可以通过alist下载到目录树文件"
+    echo "比如我将挂载115的目录/影视 挂载到alist，那我生成目录树后，就放到/影视 的目录或者子目录都可以，或者你也可以存放到其他平台，前提条件是下载链接要固定。"
+    echo "因为脚本要获取到你在115生成的目录树，才能进行更新strm文件和alist数据库，你现在可以生成一个目录树，并且重命名，可以使用目录树.txt，以后生成的都要命名为这个。"
+
+
+    echo "1: 创建strm文件更新脚本"
+    echo "2: alist数据库更新脚本"
+    echo "3: 创建strm文件+alist数据库更新脚本"
+    echo "0: 返回主菜单"
+
+    read -r script_choice
+    case $script_choice in
+        1)
+            echo "请输入脚本存放目录："
+            read -r script_dir
+            
+            mkdir -p "$script_dir"
+
+            echo "请输入目录树下载的链接，在alist找到创建的目录树文件，右击复制链接："
+            read -r download_link
+
+            echo "请输入 .strm 文件保存的路径，上次配置:${strm_save_path}，回车确认："
+            read -r input_strm_save_path
+            strm_save_path="${input_strm_save_path:-$strm_save_path}"
+            mkdir -p "$strm_save_path"
+
+            echo "请输入alist的地址+端口（例如：http://abc.com:5244），上次配置:${alist_url}，回车确认："
+            read -r input_alist_url
+            alist_url="${input_alist_url:-$alist_url}"
+            if [[ "$alist_url" != */ ]]; then
+                alist_url="$alist_url/"
+            fi
+
+            echo "请输入alist存储里对应的挂载路径信息，上次配置:${mount_path}，回车确认："
+            read -r input_mount_path
+            mount_path="${input_mount_path:-$mount_path}"
+            if [[ "$mount_path" == "/" ]]; then
+                mount_path=""
+            else
+                mount_path="/${mount_path#/}"
+                mount_path="${mount_path%/}"
+            fi
+
+            echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2），上次配置:${exclude_option}，回车确认："
+            read -r input_exclude_option
+            exclude_option=${input_exclude_option:-2}
+
+# 定义脚本内容
+script_content="#!/bin/bash
+# 下载目录树文件
+curl -L \"$download_link\" -o \"$script_dir/目录树.txt\"
+
+# 转换目录树为目录文件
+python3 -c \"
+import os
+
+def parse_directory_tree(file_path):
+    current_path_stack = []
+    directory_list_file = '$script_dir/目录文件.txt'
+
+    with open(file_path, 'rb') as file, open(directory_list_file, 'w', encoding='utf-8') as output_file:
+        content = file.read()
+        try:
+            content = content.decode('utf-16')
+        except UnicodeDecodeError:
+            content = content.decode('utf-8', errors='ignore')
+
+        for line in content.splitlines():
+            line = line.lstrip('\ufeff').rstrip()
+            line_depth = line.count('|')
+            item_name = line.split('|-')[-1].strip()
+            if not item_name:
+                continue
+            while len(current_path_stack) > line_depth:
+                current_path_stack.pop()
+            if len(current_path_stack) == line_depth:
+                if current_path_stack:
+                    current_path_stack.pop()
+            current_path_stack.append(item_name)
+            full_path = '/' + '/'.join(current_path_stack)
+            output_file.write(full_path + '\\n')
+
+parse_directory_tree('$script_dir/目录树.txt')
+\"
+
+# 使用 sed 修改生成的目录文件
+sed -i 's/^.\{4\}/\//' \"$script_dir/目录文件.txt\"
+
+# 生成 .strm 文件
+python3 -c \"
+import os
+import urllib.parse
+
+def create_strm_files():
+    with open('$script_dir/目录文件.txt', 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    media_extensions = {
+        'mp3', 'flac', 'wav', 'aac', 'ogg', 'wma', 'alac', 'm4a',
+        'aiff', 'ape', 'dsf', 'dff', 'wv', 'pcm', 'tta',
+        'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'vob', 'mpg', 'mpeg',
+        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'svg', 'heic',
+        'iso', 'img', 'bin', 'nrg', 'cue', 'dvd',
+        'lrc', 'srt', 'sub', 'ssa', 'ass', 'vtt', 'txt',
+        'pdf', 'doc', 'docx', 'csv', 'xml', 'new'
+    }
+
+    custom_extensions = set('$custom_extensions'.split())
+    media_extensions.update(custom_extensions)
+
+    exclude_option = $exclude_option + 1  # 增加一层
+    alist_url = '$alist_url'
+    mount_path = '$mount_path'
+    strm_save_path = '$strm_save_path'
+
+    for line in lines:
+        line = line.rstrip()
+        line_depth = line.count('/')
+        if line_depth < exclude_option:
+            continue
+        adjusted_path = '/'.join(line.split('/')[exclude_option:])
+        if not adjusted_path:
+            continue
+        file_extension = adjusted_path.split('.')[-1].lower()
+        if file_extension not in media_extensions:
+            continue
+        file_name = os.path.basename(adjusted_path)
+        parent_path = os.path.dirname(adjusted_path)
+        os.makedirs(os.path.join(strm_save_path, parent_path), exist_ok=True)
+        
+        encoded_path = urllib.parse.quote(f'd{mount_path}/{parent_path}/{file_name}')
+        strm_file_path = os.path.join(strm_save_path, parent_path, f'{file_name}.strm')
+        with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
+            strm_file.write(f'{alist_url}{encoded_path}')
+
+create_strm_files()
+\"
+
+echo \"strm文件已更新。\"
+"
+
+            script_name="115-strm.sh"
+            echo "$script_content" > "$script_dir/$script_name"
+
+            chmod +x "$script_dir/$script_name"
+            echo "自动更新脚本115-strm已生成，请添加到任务计划，可配置定时执行，在执行前，记得先到115生成目录树。"
+            ;;
+        2)
+            echo "功能待实现。"
+            ;;
+        3)
+            echo "功能待实现。"
+            ;;
+        0)
+            echo "返回主菜单。"
+            ;;
+        *)
+            echo "无效的选项，请输入 0、1、2 或 3。"
+            ;;
+    esac
+}
 # 高级配置函数
 advanced_configuration() {
     echo "由于115目录树没有对文件和文件夹进行定义，本脚本内置了常用文件格式进行文件和文件夹的判断。"
@@ -554,7 +719,11 @@ while true; do
             build_index_database
             ;;
         4)
-            # 选择4：进行高级配置，添加非标准文件格式
+            # 选择4：创建自动更新脚本
+            create_auto_update_script
+            ;;
+        5)
+            # 选择5：进行高级配置，添加非标准文件格式
             advanced_configuration
             ;;
         0)
@@ -564,7 +733,7 @@ while true; do
             ;;
         *)
             # 处理无效输入
-            echo "无效的选项，请输入 0、1、2、3 或 4。"
+            echo "无效的选项，请输入 0、1、2、3、4 或 5。"
             ;;
     esac
 done
