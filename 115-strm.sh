@@ -4,14 +4,14 @@
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-# 配置文件路径
-config_file="/var/tmp/115-strm.conf"
+# 配置文件路径，改用$HOME来确保路径正确解析
+config_file="$HOME/.115-strm.conf"
 
 # 读取配置文件函数
 read_config() {
     if [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
-        。 "$config_file"
+        . "$config_file"
     fi
 }
 
