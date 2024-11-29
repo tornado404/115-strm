@@ -84,41 +84,28 @@ builtin_other_extensions=("iso" "img" "bin" "nrg" "cue" "dvd" "lrc" "srt" "sub" 
 # 将目录树文件转换为目录文件的函数
 convert_directory_tree() {
     if [ -n "$directory_tree_file" ]; then
-        echo "请输入目录树文件的路径或者下载链接，上次配置:${directory_tree_file}，回车确认："
+        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt，上次配置:${directory_tree_file}，回车确认："
     else
-        echo "请输入目录树文件的路径或者下载链接，路径示例：/path/to/alist20250101000000_目录树.txt，回车确认："
+        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt："
     fi
     read -r input_directory_tree_file
     directory_tree_file="${input_directory_tree_file:-$directory_tree_file}"
 
-    if [[ $directory_tree_file == http* ]]; then
-        url="$directory_tree_file"
-
-        filename=$(basename "$url")
-        decoded_filename=$(python3 -c "import urllib.parse; print(urllib.parse.unquote('$filename'))")
-
-        # 下载文件
-        curl -o "$filename" "$url"
-
-        # 重命名文件
-        mv "$filename" "$decoded_filename"
-
-        # 更新 directory_tree_file 为新下载文件的完整路径
-        directory_tree_file="$PWD/$decoded_filename"
-
-        # 保存配置以记录新路径
-        save_config
-    fi
-
+    # 检查目录树文件是否存在
     if [ ! -f "$directory_tree_file" ]; then
         echo "目录树文件不存在，请提供有效的文件路径。"
         return
     fi
 
+    # 获取目录树文件的目录和文件名
     directory_tree_dir=$(dirname "$directory_tree_file")
     directory_tree_base=$(basename "$directory_tree_file")
+
+    # 转换目录树文件为 UTF-8 格式，以便处理（如有需要）
     converted_file="$directory_tree_dir/$directory_tree_base.converted"
     iconv -f utf-16le -t utf-8 "$directory_tree_file" -o "$converted_file"
+
+    # 生成的目录文件路径
     generated_directory_file="${converted_file}_目录文件.txt"
 
     # 使用 Python 解析目录树
