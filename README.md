@@ -17,7 +17,7 @@ https://115.com/s/swhspho33xj?password=0000#
 
 # 测试环境
 系统ubuntu20<br><br>
-安装好python<br><br>
+安装好python、sqlite3<br><br>
 执行需要sudo权限<br><br>
 alistV3.39.1<br><br>
 使用strm，alist需要关闭签名，如果你不使用strm，只是建立alist的搜索数据库，则不需要关闭签名<br><br>
