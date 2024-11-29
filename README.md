@@ -85,9 +85,10 @@ strm文件测试，随便打开一个strm文件，复制链接粘贴到浏览器
 
 alsit版本不能太低，最好在v3.37.x以后的版本,
 
-将alsit停止后，备份data.db数据库，将data.db数据库文件存放到脚本执行的目录
+如果你执行脚本的服务器和alist的服务器不在同一个系统，需要将alsit停止后，备份data.db数据库，将data.db数据库文件存放到脚本执行的目录<br><br>
+如果你执行脚本的服务器和alist的服务器在同一个系统，需要将alsit停止后，备份data.db数据库，输入alist的数据路文件路劲就可以<br><br>
 
-在主页面选择3
+在主页面选择3<br><br>
 脚本会自动获取当前的文件提供选择,剔除路径和新增路劲跟生成strm同理<br><br>
 ![image](https://github.com/user-attachments/assets/4db9147f-c17d-4911-9e0d-970813751e79)
 
@@ -99,8 +100,8 @@ alsit版本不能太低，最好在v3.37.x以后的版本,
 
 
 <br><br>
-
-将data.db上传到alist目录，替换data.db，再次提醒data.db提前备份<br><br>
+如果你执行脚本的服务器和alist的服务器不在同一个系统，需要执行多这一步，如果你第一步直接填写的alist数据库文件，不需要此步骤<br><br>
+将data.db上传到alist目录，替换data.db，再次提醒data.db提前备份，<br><br>
 
 ![image](https://github.com/user-attachments/assets/47a876cb-9686-406a-a0fc-848488be1de7)<br><br>
 
