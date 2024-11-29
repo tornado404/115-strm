@@ -108,9 +108,6 @@ convert_directory_tree() {
     # 生成的目录文件路径
     generated_directory_file="${converted_file}_目录文件.txt"
 
-    echo "目录树文件已准备好，可以继续操作。"
-}
-
     # 使用 Python 解析目录树
     python3 - <<EOF
 import os
