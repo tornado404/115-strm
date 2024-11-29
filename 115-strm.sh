@@ -598,9 +598,11 @@ script_content="#!/bin/bash
 # 下载目录树文件
 curl -L \"$download_link\" -o \"$script_dir/目录树.txt\"
 
-# 转换目录树为目录文件
+# 转换目录树为目录文件并生成 .strm 文件
 python3 -c \"
 import os
+import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def parse_directory_tree(file_path):
     current_path_stack = []
@@ -628,17 +630,28 @@ def parse_directory_tree(file_path):
             full_path = '/' + '/'.join(current_path_stack)
             output_file.write(full_path + '\\n')
 
-parse_directory_tree('$script_dir/目录树.txt')
-\"
+# 处理每一行并生成 .strm 文件
+def process_line(line, media_extensions, exclude_option, alist_url, mount_path, strm_save_path):
+    line = line.rstrip()
+    line_depth = line.count('/')
+    if line_depth < exclude_option:
+        return
+    adjusted_path = '/'.join(line.split('/')[exclude_option:])
+    if not adjusted_path:
+        return
+    file_extension = adjusted_path.split('.')[-1].lower()
+    if file_extension not in media_extensions:
+        return
+    file_name = os.path.basename(adjusted_path)
+    parent_path = os.path.dirname(adjusted_path)
+    os.makedirs(os.path.join(strm_save_path, parent_path), exist_ok=True)
+    
+    encoded_path = urllib.parse.quote(f'd{mount_path}/{parent_path}/{file_name}')
+    strm_file_path = os.path.join(strm_save_path, parent_path, f'{file_name}.strm')
+    with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
+        strm_file.write(f'{alist_url}{encoded_path}')
 
-# 使用 sed 修改生成的目录文件
-sed -i 's/^.\{4\}/\//' \"$script_dir/目录文件.txt\"
-
-# 生成 .strm 文件
-python3 -c \"
-import os
-import urllib.parse
-
+# 创建 .strm 文件，使用多线程以提高效率
 def create_strm_files():
     with open('$script_dir/目录文件.txt', 'r', encoding='utf-8') as file:
         lines = file.readlines()
@@ -661,26 +674,22 @@ def create_strm_files():
     mount_path = '$mount_path'
     strm_save_path = '$strm_save_path'
 
-    for line in lines:
-        line = line.rstrip()
-        line_depth = line.count('/')
-        if line_depth < exclude_option:
-            continue
-        adjusted_path = '/'.join(line.split('/')[exclude_option:])
-        if not adjusted_path:
-            continue
-        file_extension = adjusted_path.split('.')[-1].lower()
-        if file_extension not in media_extensions:
-            continue
-        file_name = os.path.basename(adjusted_path)
-        parent_path = os.path.dirname(adjusted_path)
-        os.makedirs(os.path.join(strm_save_path, parent_path), exist_ok=True)
-        
-        encoded_path = urllib.parse.quote(f'd{mount_path}/{parent_path}/{file_name}')
-        strm_file_path = os.path.join(strm_save_path, parent_path, f'{file_name}.strm')
-        with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
-            strm_file.write(f'{alist_url}{encoded_path}')
+    # 使用线程池来并行化 .strm 文件的生成
+    max_workers = min(4, os.cpu_count() or 1)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(
+                process_line, line, media_extensions, exclude_option, 
+                alist_url, mount_path, strm_save_path
+            ) 
+            for line in lines
+        ]
+        # 确保所有任务完成
+        for _ in as_completed(futures):
+            pass
 
+# 解析目录树并创建 .strm 文件
+parse_directory_tree('$script_dir/目录树.txt')
 create_strm_files()
 \"
 
