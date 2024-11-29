@@ -27,9 +27,33 @@ custom_extensions="$custom_extensions"
 EOF
 }
 
-# 检查是否安装了 Python 3，若未安装则提示用户并退出
+# 检查是否安装了所需软件包或工具，若未安装则提示用户并退出
 if ! command -v python3 &> /dev/null; then
     echo "Python 3 未安装，请安装后再运行此脚本。"
+    exit 1
+fi
+
+# 检查是否安装了 iconv
+if ! command -v iconv &> /dev/null; then
+    echo "iconv 未安装，请安装后再运行此脚本。"
+    exit 1
+fi
+
+# 检查是否安装了 sqlite3
+if ! command -v sqlite3 &> /dev/null; then
+    echo "sqlite3 未安装，请安装后再运行此脚本。"
+    exit 1
+fi
+
+# 检查是否安装了 curl
+if ! command -v curl &> /dev/null; then
+    echo "curl 未安装，请安装后再运行此脚本。"
+    exit 1
+fi
+
+# 检查是否安装了 sed
+if ! command -v sed &> /dev/null; then
+    echo "sed 未安装，请安装后再运行此脚本。"
     exit 1
 fi
 
