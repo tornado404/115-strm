@@ -27,33 +27,9 @@ custom_extensions="$custom_extensions"
 EOF
 }
 
-# 检查是否安装了所需软件包或工具，若未安装则提示用户并退出
+# 检查是否安装了 Python 3，若未安装则提示用户并退出
 if ! command -v python3 &> /dev/null; then
     echo "Python 3 未安装，请安装后再运行此脚本。"
-    exit 1
-fi
-
-# 检查是否安装了 iconv
-if ! command -v iconv &> /dev/null; then
-    echo "iconv 未安装，请安装后再运行此脚本。"
-    exit 1
-fi
-
-# 检查是否安装了 sqlite3
-if ! command -v sqlite3 &> /dev/null; then
-    echo "sqlite3 未安装，请安装后再运行此脚本。"
-    exit 1
-fi
-
-# 检查是否安装了 curl
-if ! command -v curl &> /dev/null; then
-    echo "curl 未安装，请安装后再运行此脚本。"
-    exit 1
-fi
-
-# 检查是否安装了 sed
-if ! command -v sed &> /dev/null; then
-    echo "sed 未安装，请安装后再运行此脚本。"
     exit 1
 fi
 
@@ -346,7 +322,7 @@ EOF
     save_config
 }
 
-# 建立 alist 索引的函数
+# 建立 alist 索引数据库的函数
 build_index_database() {
     # 检查是否有生成的目录文件
     if [ -z "$generated_directory_file" ]; then
@@ -355,11 +331,11 @@ build_index_database() {
         fi
     fi
 
-    echo "建议备份后操作，请选择或者输入alist的data.db文件的完整路劲，上次配置:${db_file:-无}，回车确认"
+    echo "建议数据库备份后操作，请选择数据库文件，上次配置:${db_file:-无}，回车确认"
     select input_db_file in *.db "输入完整路径"; do
         case $input_db_file in
             "输入完整路径")
-                echo "请输入文件的完整路径："
+                echo "请输入数据库文件的完整路径："
                 read -r input_db_file
                 if [ ! -f "$input_db_file" ]; then
                     echo "文件不存在，请重新输入。"
@@ -675,7 +651,7 @@ create_strm_files()
 echo \"strm文件已更新。\"
 "
 
-            script_name="updata-115-strm.sh"
+            script_name="115-strm.sh"
             echo "$script_content" > "$script_dir/$script_name"
 
             chmod +x "$script_dir/$script_name"
