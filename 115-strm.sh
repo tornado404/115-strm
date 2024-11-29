@@ -13,6 +13,8 @@ read_config() {
         # shellcheck source=/dev/null
         . "$config_file"
     fi
+    update_existing="${update_existing:-1}"  # 默认值为 1（跳过）
+    delete_absent="${delete_absent:-2}"      # 默认值为 2（不删除）
 }
 
 # 保存配置文件函数
@@ -24,6 +26,8 @@ alist_url="$alist_url"
 mount_path="$mount_path"
 exclude_option="$exclude_option"
 custom_extensions="$custom_extensions"
+update_existing="$update_existing"
+delete_absent="$delete_absent"
 EOF
 }
 
@@ -260,15 +264,35 @@ generate_strm_files() {
         echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2）："
     fi
     read -r input_exclude_option
-    exclude_option=${input_exclude_option:-$exclude_option}
+    exclude_option=${input_exclude_option:-2}
 
-    # 使用 Python 生成 .strm 文件并处理多线程与进度显示
-    python3 - <<EOF
+    # 提示选择更新该是跳过
+    echo "如果本次要创建的strm文件已存在，请选择更新还是跳过（上次配置: ${update_existing:-1}）：1. 跳过 2. 更新"
+    read -r input_update_existing
+    update_existing="${input_update_existing:-$update_existing}"
+    # 提示选择更新该是跳过
+    echo "如果本次目录中存在本次未创建的strm文件，是否删除（上次配置: ${delete_absent:-2}）：1. 删除 2. 不删除"
+    read -r input_delete_absent
+    delete_absent="${input_delete_absent:-$delete_absent}"
+
+    # 创建临时文件来存储现有的目录结构
+    temp_existing_structure=$(mktemp)
+    temp_new_structure=$(mktemp)
+
+    # 获取现有的 .strm 文件目录结构并存入临时文件
+    find "$strm_save_path" -type f -name "*.strm" > "$temp_existing_structure"
+
+# 使用 Python 生成 .strm 文件并处理多线程与进度显示
+python3 - <<EOF
 import os
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+
+# 定义一些变量
+update_existing = $update_existing
+delete_absent = $delete_absent
+
 
 # 定义常见的媒体文件扩展名，并合并用户自定义扩展名
 media_extensions = set([
@@ -289,75 +313,140 @@ alist_url = "$full_alist_url"
 strm_save_path = "$strm_save_path"
 generated_directory_file = "$generated_directory_file"
 
-# 获取文件行数
-with open(generated_directory_file, 'r', encoding='utf-8') as f:
-    total_lines = sum(1 for _ in f)
-    f.seek(0)
-    valid_lines = total_lines - exclude_option
+# 临时文件路径，存放在当前脚本执行目录
+temp_existing_structure = os.path.join("${script_dir}", "existing_structure.txt")
+temp_new_structure = os.path.join("${script_dir}", "new_structure.txt")
+temp_to_create = os.path.join("${script_dir}", "to_create.txt")
+temp_to_delete = os.path.join("${script_dir}", "to_delete.txt")
 
-processed_lines = 0
-lock = threading.Lock()
-start_time = time.time()
+# 获取现有的 .strm 文件目录结构
+def list_existing_files():
+    existing_files = []
+    for root, _, files in os.walk(strm_save_path):
+        for file in files:
+            if file.endswith('.strm'):
+                existing_files.append(os.path.join(root, file))
+    with open(temp_existing_structure, 'w', encoding='utf-8') as f:
+        f.writelines(f"{line}\n" for line in existing_files)
 
-def process_line(line):
-    global processed_lines
-    line = line.rstrip()
-    line_depth = line.count('/')
+# 处理生成目录结构
+def process_directory_structure():
+    with open(generated_directory_file, 'r', encoding='utf-8') as file, open(temp_new_structure, 'w', encoding='utf-8') as new_structure_file:
+        for line in file:
+            line = line.strip()
+            if line.count('/') < exclude_option + 1:
+                continue
 
-    if line_depth < exclude_option:
+            adjusted_path = '/'.join(line.split('/')[exclude_option + 1:])
+            if adjusted_path.split('.')[-1].lower() in media_extensions:
+                new_structure_file.write(adjusted_path + '\n')
+
+# 根据文件列表创建或更新 .strm 文件
+def create_strm_files():
+    total = 0
+    with open(temp_new_structure, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+        total = len(lines)
+    
+    processed = 0
+    lock = threading.Lock()
+    with open(temp_to_create, 'w', encoding='utf-8') as to_create_file:
+        def process_line(line):
+            nonlocal processed
+            line = line.strip()
+            parent_path, file_name = os.path.split(line)
+            strm_file_path = os.path.join(strm_save_path, parent_path, f"{file_name}.strm")
+            os.makedirs(os.path.join(strm_save_path, parent_path), exist_ok=True)
+
+            if not os.path.exists(strm_file_path) or update_existing == 2:
+                encoded_path = urllib.parse.quote(line)
+                with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
+                    strm_file.write(f"{alist_url}{encoded_path}")
+                to_create_file.write(strm_file_path + '\n')
+
+            with lock:
+                processed += 1
+                print(f"\r创建 .strm：{processed}/{total} ({processed / total:.2%})", end='')
+
+        with ThreadPoolExecutor(max_workers=min(4, os.cpu_count() or 1)) as executor:
+            futures = [executor.submit(process_line, line) for line in lines]
+            for _ in as_completed(futures):
+                pass
+
+# 删除多余的 .strm 文件
+def delete_obsolete_files():
+    if delete_absent != 1:
         return
 
-    adjusted_path = '/'.join(line.split('/')[exclude_option+1:])
-
-    if not adjusted_path:
-        return
-
-    file_extension = adjusted_path.split('.')[-1].lower()
+    with open(temp_existing_structure, 'r', encoding='utf-8') as existing_file:
+        existing_files = set(existing_file.read().splitlines())
+    with open(temp_new_structure, 'r', encoding='utf-8') as new_file:
+        new_files = {os.path.join(strm_save_path, '/'.join(path.split('/')[:-1]), path.split('/')[-1] + '.strm') for path in new_file.read().splitlines()}
     
-    # 判断是文件还是目录
-    is_dir = 0 if file_extension in media_extensions else 1
+    files_to_delete = existing_files - new_files
+    total = len(files_to_delete)
+    processed = 0
+    lock = threading.Lock()
 
-    if is_dir == 0:
-        file_name = os.path.basename(adjusted_path)  # 获取文件名
-        parent_path = os.path.dirname(adjusted_path)  # 获取父目录路径
-        
-        os.makedirs(os.path.join(strm_save_path, parent_path), exist_ok=True)  # 创建必要的目录
-        
-        encoded_path = urllib.parse.quote(f"{parent_path}/{file_name}")  # 对路径进行 URL 编码
-       
-        strm_file_path = os.path.join(strm_save_path, parent_path, f"{file_name}.strm")  # 生成 .strm 文件路径
-        
-        # 写入 .strm 文件
-        with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
-            strm_file.write(f"{alist_url}{encoded_path}")
-    
-    # 更新进度条
-    with lock:
-        processed_lines += 1
-        elapsed_time = time.time() - start_time
-        minutes, seconds = divmod(int(elapsed_time), 60)
-        progress_percentage = processed_lines / valid_lines if valid_lines else 0
-        print(f"\r总文件：{total_lines}，剔除数：{exclude_option}，有效数：{valid_lines}，已处理：{processed_lines}，进度：{progress_percentage:.2%}，耗时：{minutes:02}:{seconds:02}", end='')
+    with open(temp_to_delete, 'w', encoding='utf-8') as to_delete_file:
+        def process_deletion(file_path):
+            nonlocal processed
+            try:
+                os.remove(file_path)
+                to_delete_file.write(file_path + '\n')
+                parent_dir = os.path.dirname(file_path)
+                while parent_dir and parent_dir != strm_save_path:
+                    try:
+                        os.rmdir(parent_dir)
+                    except OSError:
+                        break
+                    parent_dir = os.path.dirname(parent_dir)
+            except OSError:
+                pass
 
-with open(generated_directory_file, 'r', encoding='utf-8') as file:
-    lines = file.readlines()
+            with lock:
+                processed += 1
+                print(f"\r删除 .strm：{processed}/{total} ({processed / total:.2%})", end='')
 
-# 根据机器性能合理设置线程池大小
-max_workers = min(4, os.cpu_count() or 1)
+        with ThreadPoolExecutor(max_workers=min(4, os.cpu_count() or 1)) as executor:
+            futures = [executor.submit(process_deletion, file_path) for file_path in files_to_delete]
+            for _ in as_completed(futures):
+                pass
 
-# 使用线程池并发处理行数据
-with ThreadPoolExecutor(max_workers=max_workers) as executor:
-    futures = [executor.submit(process_line, line) for line in lines]
-    for _ in as_completed(futures):
-        pass
+print("检测现有 .strm 文件...")
+list_existing_files()
 
-print("\n已完成 .strm 文件生成。")
+print("生成新的目录结构...")
+process_directory_structure()
+
+print("创建 .strm 文件...")
+create_strm_files()
+
+print("\n删除多余的 .strm 文件...")
+delete_obsolete_files()
+
+print("\n操作完成。")
+
 EOF
 
-    # 保存配置
-    save_config
-}
+# 定义当前脚本的执行目录
+script_dir=$(pwd)
 
+# 清理临时文件
+for temp_file in "existing_structure.txt" "new_structure.txt" "to_create.txt" "to_delete.txt"; do
+    temp_file_path="${script_dir}/${temp_file}"
+    if [ -f "$temp_file_path" ]; then
+        rm "$temp_file_path"
+        echo "已删除临时文件：'$temp_file_path'"
+    else
+        echo "没有检测到需要删除的文件：'$temp_file_path'"
+    fi
+done
+
+
+# 保存配置
+save_config
+}
 # 建立 alist 索引数据库的函数
 build_index_database() {
     # 检查是否有生成的目录文件
