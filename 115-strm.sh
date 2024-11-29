@@ -11,7 +11,7 @@ config_file="$HOME/.115-strm.conf"
 read_config() {
     if [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
-        . "$config_file"
+        。 "$config_file"
     fi
 }
 
@@ -322,7 +322,7 @@ EOF
     save_config
 }
 
-# 建立 alist 索引数据库的函数
+# 建立 alist 索引的函数
 build_index_database() {
     # 检查是否有生成的目录文件
     if [ -z "$generated_directory_file" ]; then
@@ -331,11 +331,11 @@ build_index_database() {
         fi
     fi
 
-    echo "建议数据库备份后操作，请选择数据库文件，上次配置:${db_file:-无}，回车确认"
+    echo "建议备份后操作，请选择或者输入alist的data.db文件的完整路劲，上次配置:${db_file:-无}，回车确认"
     select input_db_file in *.db "输入完整路径"; do
         case $input_db_file in
             "输入完整路径")
-                echo "请输入数据库文件的完整路径："
+                echo "请输入文件的完整路径："
                 read -r input_db_file
                 if [ ! -f "$input_db_file" ]; then
                     echo "文件不存在，请重新输入。"
