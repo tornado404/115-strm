@@ -105,6 +105,8 @@ alsit版本不能太低，最好在v3.37.x以后的版本,
 
 ![image](https://github.com/user-attachments/assets/47a876cb-9686-406a-a0fc-848488be1de7)<br><br>
 
+在alist设置-索引，设置为数据库(非全文搜索)，点击保存就可以了
+![image](https://github.com/user-attachments/assets/9823d5a7-ae6a-45ce-a91b-f2156b43904c)<br><br>
 
 开启alist，以下为效果，理论上，你可以将整个115网盘都挂载到alist，并且在alist上就可以搜索和观看<br><br>
 
