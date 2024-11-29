@@ -11,7 +11,7 @@ config_file="$HOME/.115-strm.conf"
 read_config() {
     if [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
-        。 "$config_file"
+        . "$config_file"
     fi
 }
 
