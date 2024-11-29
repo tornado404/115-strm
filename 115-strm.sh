@@ -11,7 +11,7 @@ config_file="$HOME/.115-strm.conf"
 read_config() {
     if [ -f "$config_file" ]; then
         # shellcheck source=/dev/null
-        。 "$config_file"
+        . "$config_file"
     fi
 }
 
@@ -51,12 +51,6 @@ if ! command -v curl &> /dev/null; then
     exit 1
 fi
 
-# 检查是否安装了 sed
-if ! command -v sed &> /dev/null; then
-    echo "sed 未安装，请安装后再运行此脚本。"
-    exit 1
-fi
-
 # 初始化配置
 read_config
 
@@ -84,14 +78,32 @@ builtin_other_extensions=("iso" "img" "bin" "nrg" "cue" "dvd" "lrc" "srt" "sub" 
 # 将目录树文件转换为目录文件的函数
 convert_directory_tree() {
     if [ -n "$directory_tree_file" ]; then
-        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt，上次配置:${directory_tree_file}，回车确认："
+        echo "请输入目录树文件的路径或者下载链接，上次配置:${directory_tree_file}，回车确认："
     else
-        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt："
+        echo "请输入目录树文件的路径或者下载链接，路径示例：/path/to/alist20250101000000_目录树.txt，回车确认："
     fi
     read -r input_directory_tree_file
     directory_tree_file="${input_directory_tree_file:-$directory_tree_file}"
 
-    # 检查目录树文件是否存在
+    if [[ $directory_tree_file == http* ]]; then
+        url="$directory_tree_file"
+
+        filename=$(basename "$url")
+        decoded_filename=$(python3 -c "import urllib.parse; print(urllib.parse.unquote('$filename'))")
+
+        # 下载文件
+        curl -L -o "$filename" "$url"
+
+        # 重命名文件
+        mv "$filename" "$decoded_filename"
+
+        # 更新 directory_tree_file 为新下载文件的完整路径
+        directory_tree_file="$PWD/$decoded_filename"
+
+        # 保存配置以记录新路径
+        save_config
+    fi
+
     if [ ! -f "$directory_tree_file" ]; then
         echo "目录树文件不存在，请提供有效的文件路径。"
         return
@@ -355,7 +367,7 @@ build_index_database() {
         fi
     fi
 
-    echo "建议备份后操作，请选择或者输入alist的data.db文件的完整路劲，上次配置:${db_file:-无}，回车确认"
+    echo "建议备份后操作，请输入alist的data.db文件的完整路劲，上次配置:${db_file:-无}，回车确认"
     select input_db_file in *.db "输入完整路径"; do
         case $input_db_file in
             "输入完整路径")
@@ -679,7 +691,7 @@ echo \"strm文件已更新。\"
             echo "$script_content" > "$script_dir/$script_name"
 
             chmod +x "$script_dir/$script_name"
-            echo "自动更新脚本115-strm已生成，请添加到任务计划，可配置定时执行，在执行前，记得先到115生成目录树。"
+            echo "自动更新脚本updata-115-strm已生成，请添加到任务计划，可配置定时执行，在执行前，记得先到115生成目录树。"
             ;;
         2)
             echo "功能待实现。"
@@ -694,6 +706,35 @@ echo \"strm文件已更新。\"
             echo "无效的选项，请输入 0、1、2 或 3。"
             ;;
     esac
+}
+# 高级配置函数
+advanced_configuration() {
+    echo "由于115目录树没有对文件和文件夹进行定义，本脚本内置了常用文件格式进行文件和文件夹的判断。"
+    echo "如果你处理的文件格式不常见，你可以在这里添加，多个格式请使用空格分隔，不需要一个个对，脚本自动会去重，例如：mp3 mp4"
+    echo "退回主菜单请输入0，打印脚本内置格式请输入1。"
+    read -r user_input
+
+    if [[ "$user_input" == "0" ]]; then
+        return
+    elif [[ "$user_input" == "1" ]]; then
+        print_builtin_formats
+        return
+    fi
+
+    # 转换为小写并去重
+    new_extensions=$(echo "$user_input" | tr ' ' '\n' | tr '[:upper:]' '[:lower:]' | sort -u)
+    
+    # 更新全局变量
+    for ext in $new_extensions; do
+        if ! echo "$custom_extensions" | grep -qw "$ext"; then
+            custom_extensions="$custom_extensions $ext"
+        fi
+    done
+
+    echo "已添加的自定义扩展名：$custom_extensions"
+
+    # 保存配置
+    save_config
 }
 # 高级配置函数
 advanced_configuration() {
