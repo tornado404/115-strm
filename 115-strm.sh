@@ -83,22 +83,18 @@ builtin_other_extensions=("iso" "img" "bin" "nrg" "cue" "dvd" "lrc" "srt" "sub" 
 
 # 将目录树文件转换为目录文件的函数
 convert_directory_tree() {
-    echo "请输入目录树文件的路径或链接："
-    read -r input_directory_tree
-
-    # 检查用户输入是否是一个有效的文件路径
-    if [ -f "$input_directory_tree" ]; then
-        directory_tree_file="$input_directory_tree"
+    if [ -n "$directory_tree_file" ]; then
+        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt，上次配置:${directory_tree_file}，回车确认："
     else
-        # 如果不是文件路径，尝试使用curl下载
-        echo "正在尝试下载目录树文件..."
-        if curl -L "$input_directory_tree" -o "$directory_tree_file"; then
-            # 下载成功，继续处理
-            directory_tree_file="$input_directory_tree"
-        else
-            echo "目录树文件下载失败，请确认链接正确并重试。"
-            return
-        fi
+        echo "请输入目录树文件的路径，例如：/path/to/alist20250101000000_目录树.txt："
+    fi
+    read -r input_directory_tree_file
+    directory_tree_file="${input_directory_tree_file:-$directory_tree_file}"
+
+    # 检查目录树文件是否存在
+    if [ ! -f "$directory_tree_file" ]; then
+        echo "目录树文件不存在，请提供有效的文件路径。"
+        return
     fi
 
     # 获取目录树文件的目录和文件名
