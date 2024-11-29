@@ -45,8 +45,10 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/suixing8/115-strm/m
 ![image](https://github.com/user-attachments/assets/d2f203ae-ba6d-4bec-a339-f142d2b28b86)
 <br><br>
 ## 1: 将目录树转换为目录文件
+可下载后上传到服务器后输入完整路劲，也可以生成后的文件放到有alist挂载的目录，输入alist的下载链接
 1是必操作项，2或者3，根据自己的需求使用<br><br>
-![image](https://github.com/user-attachments/assets/caf4a831-36ae-4660-a754-31110ffa95e2)
+![image](https://github.com/user-attachments/assets/c833d6e2-a84d-4e10-9f95-793649a5cb74)
+
 
 ## 2: 生成 .strm 文件
 输入 .strm 文件保存的路径<br><br>
