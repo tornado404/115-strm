@@ -650,8 +650,13 @@ create_auto_update_script() {
 
         mkdir -p "$script_dir"
 
-        echo "请输入目录树下载的链接，在alist找到创建的目录树文件，右击复制链接："
+        if [ -n "$directory_tree_file" ]; then
+            echo "请输入目录树文件的路径或者下载链接，上次配置:${directory_tree_file}，回车确认："
+        else
+            echo "请输入目录树下载的链接（路径示例：http://127.0.0.1:5244/d/115/目录树.txt），在alist找到创建的目录树文件，右击复制链接，回车确认："
+        fi
         read -r download_link
+        download_link="${download_link:-$directory_tree_file}"
 
         echo "请输入 .strm 文件保存的路径，上次配置:${strm_save_path}，回车确认："
         read -r input_strm_save_path
@@ -664,6 +669,7 @@ create_auto_update_script() {
         if [[ "$alist_url" != */ ]]; then
             alist_url="$alist_url/"
         fi
+        echo -e "完成的 alist_url 为 ${alist_url}\n"
 
         echo "请输入alist存储里对应的挂载路径信息，上次配置:${mount_path}，回车确认："
         read -r input_mount_path
@@ -677,12 +683,12 @@ create_auto_update_script() {
 
         echo "请输入剔除选项（输入要剔除的目录层级数量，默认为2），上次配置:${exclude_option}，回车确认："
         read -r input_exclude_option
-        exclude_option=${input_exclude_option:-2}
+        exclude_option="${input_exclude_option:-$exclude_option}"
 
         # 定义脚本内容
         script_content="#!/bin/bash
 # 下载目录树文件
-curl -L \"$download_link\" -o \"$script_dir/目录树.txt\"
+curl -L -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \"$download_link?\$(date +%s)\" -o \"$script_dir/目录树.txt\"
 
 # 转换目录树为目录文件并生成 .strm 文件
 python3 -c \"
@@ -781,12 +787,18 @@ create_strm_files()
 
 echo \"strm文件已更新。\"
 "
-
         script_name="update-115-strm.sh"
         echo "$script_content" >"$script_dir/$script_name"
 
         chmod +x "$script_dir/$script_name"
-        echo "自动更新脚本update-115-strm已生成，请添加到任务计划，可配置定时执行，在执行前，记得先到115生成目录树。"
+        echo "自动更新脚本 $script_dir/$script_name 已生成，请添加到任务计划，可配置定时执行，在执行前，记得先到115生成目录树。"
+
+        # 保存配置以记录新路径
+        directory_tree_file="$download_link"
+        save_config
+        echo -e "\n配置文件已存储："
+        cat $config_file
+        echo -e "\n"
         ;;
     2)
         echo "功能待实现。"
