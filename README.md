@@ -1,7 +1,81 @@
 # 115-strm
 
-通过 115 网盘生成下载目录树，自动生成 strm 文件，使用 alist 的情况下，可添加到 emby 进行播放，并且支持将目录树导入到 alist 的索引数据库，目前只测试音乐、视频，其他多媒体格式应也是可以的<br>
-由于 115 目录树没有定义文件和文件夹，脚本采用常见的文件格式来区分，如果你处理的格式比较特别，可在高级配置里面查看内置的文件格式和新增文件格式，新增了自动更新的脚本，方便更新 strm，使用的覆盖，有时间再考虑做去除无效 strm
+通过 115 网盘生成下载目录树，自动生成 strm 文件，使用 alist 的情况下，可添加到 emby 进行播放
+
+原理：每小时获取一次 115 网盘内的 `目录树.txt`，并生成（更新） strm 文件。
+
+创建 `docker-compose.yml` 文件
+
+```yml
+services:
+    alpine:
+        image: ghcr.io/uwang/115-strm:latest
+        container_name: alist-strm
+        environment:
+          - ALIST_HOST=192.168.1.100
+          - ALIST_PORT=5244
+          - ALIST_115_MOUNT_PATH='/115'
+          - ALIST_115_TREE_FILE='/目录树.txt'
+          - EXCLUDE_OPTION=1
+          - UPDATE_EXISTING=1
+          - DELETE_ABSENT=1
+          - ALIST_115_TREE_FILE_FOR_GUEST='/115/目录树.txt'
+          - MEDIA_EXTENSIONS='mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg'
+          - TZ=Asia/Shanghai
+        volumes:
+            - '/path/to/115-strm/data:/data'
+        restart: 'unless-stopped'
+```
+
+## alist 配置
+
+- alist 里需要关闭签名。关闭签名方法: 1： 在管理-设置-全局-关闭签名所有。2：在储存-挂载的储存-启用签名选择关闭
+- alist 里需要启用 guest 用户，给 115 对应文件的 webdav 读权限
+
+相关环境变量：
+
+```env
+ALIST_HOST=192.168.1.100       # alist 主机的 ip
+ALIST_PORT=5244                # alist 主机的端口
+ALIST_115_MOUNT_PATH=/115      # 115网盘在 alist 中的挂载路径
+
+# 可选配置，用于探测目录树的 sha1 是否改变，需启用 guest 用户，并给 guest 用户 webdav 读取权限
+ALIST_115_TREE_FILE_FOR_GUEST=/115/目录树.txt
+```
+
+## 115网盘
+
+假设 115 网盘的目录结构如下：
+
+```txt
+.
+├── 媒体库
+└── 目录树.txt
+```
+
+则 ALIST_115_TREE_FILE 填写 `/目录树.txt`，EXCLUDE_OPTION 填写 `1`
+
+```env
+ALIST_115_TREE_FILE=/目录树.txt  # 每次在115网盘根目录生成目录树文件，并将其改为固定名称 目录树.txt
+EXCLUDE_OPTION=1                # 可选配置，排除的目录，一级目录填 1
+```
+
+其他环境变量说明：
+
+```env
+UPDATE_EXISTING=0 # 可选配置，是否更新已存在的 strm 文件
+DELETE_ABSENT=1   # 可选配置，是否删除目录树中不存在的 strm 文件
+
+# 可选配置，自定义生成 strm 文件的文件后缀名
+MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg
+```
+
+确认上述环境变量后，启动服务：
+
+```bash
+docker compose up -d
+```
+
 ## 分享音乐
 
 <https://115.com/s/swhsphs33xj?password=0000#>

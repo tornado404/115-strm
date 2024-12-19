@@ -1,0 +1,18 @@
+services:
+    alpine:
+        image: ghcr.io/uwang/115-strm:latest
+        container_name: alist-strm
+        environment:
+          - TZ=Asia/Shanghai
+          - ALIST_HOST=${ALIST_HOST}
+          - ALIST_PORT=${ALIST_PORT}
+          - ALIST_115_MOUNT_PATH=${ALIST_115_MOUNT_PATH}
+          - ALIST_115_TREE_FILE=${ALIST_115_TREE_FILE}
+          - EXCLUDE_OPTION=${EXCLUDE_OPTION}
+          - UPDATE_EXISTING=${UPDATE_EXISTING}
+          - DELETE_ABSENT=${DELETE_ABSENT}
+          - ALIST_115_TREE_FILE_FOR_GUEST=${ALIST_115_TREE_FILE_FOR_GUEST}
+          - MEDIA_EXTENSIONS=${MEDIA_EXTENSIONS}
+        volumes:
+            - '/path/to/115-strm/data:/data'
+        restart: 'unless-stopped'
