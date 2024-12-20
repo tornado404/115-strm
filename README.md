@@ -14,13 +14,13 @@ services:
         environment:
           - ALIST_HOST=192.168.1.100
           - ALIST_PORT=5244
-          - ALIST_115_MOUNT_PATH='/115'
-          - ALIST_115_TREE_FILE='/目录树.txt'
+          - ALIST_115_MOUNT_PATH=/115
+          - ALIST_115_TREE_FILE=/目录树.txt
           - EXCLUDE_OPTION=1
           - UPDATE_EXISTING=1
           - DELETE_ABSENT=1
-          - ALIST_115_TREE_FILE_FOR_GUEST='/115/目录树.txt'
-          - MEDIA_EXTENSIONS='mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg'
+          - ALIST_115_TREE_FILE_FOR_GUEST=/115/目录树.txt
+          - MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg,iso
           - TZ=Asia/Shanghai
         volumes:
             - '/path/to/115-strm/data:/data'
@@ -52,6 +52,8 @@ ALIST_115_TREE_FILE_FOR_GUEST=/115/目录树.txt
 ├── 媒体库
 └── 目录树.txt
 ```
+
+<img src="./img/115.png" alt="115目录结构" width="230" height="100">
 
 则 ALIST_115_TREE_FILE 填写 `/目录树.txt`，EXCLUDE_OPTION 填写 `1`
 
