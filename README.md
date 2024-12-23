@@ -3,6 +3,9 @@
 通过 115 网盘生成下载目录树，自动生成 strm 文件，使用 alist 的情况下，可添加到 emby 进行播放
 
 原理：每小时获取一次 115 网盘内的 `目录树.txt`，并生成（更新） strm 文件。
+>PS: 由于 alist 默认有文件缓存 30 分钟后，所以115网盘内的目录树更新后，strm 文件可能在下一个整点更新，也可能在第二个整点更新。
+
+镜像内置的定时任务配置为：`0 * * * * sleep $((RANDOM % 60)) && /app/main.py`。如果不满足要求可自行修改。
 
 创建 `docker-compose.yml` 文件
 
@@ -23,13 +26,15 @@ services:
           - MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg,iso
           - TZ=Asia/Shanghai
         volumes:
-            - '/path/to/115-strm/data:/data'
+            - '/path/to/strm:/data'
         restart: 'unless-stopped'
 ```
 
-## alist 配置
+## 环境变量：alist
 
-- alist 里需要关闭签名。关闭签名方法: 1： 在管理-设置-全局-关闭签名所有。2：在储存-挂载的储存-启用签名选择关闭
+- alist 里需要关闭签名。关闭签名:
+    1. 在管理-设置-全局-关闭签名所有。
+    2. 在储存-挂载的储存-启用签名选择关闭
 - alist 里需要启用 guest 用户，给 115 对应文件的 webdav 读权限
 
 相关环境变量：
@@ -43,7 +48,7 @@ ALIST_115_MOUNT_PATH=/115      # 115网盘在 alist 中的挂载路径
 ALIST_115_TREE_FILE_FOR_GUEST=/115/目录树.txt
 ```
 
-## 115网盘
+## 环境变量：115网盘
 
 假设 115 网盘的目录结构如下：
 
@@ -62,21 +67,31 @@ ALIST_115_TREE_FILE=/目录树.txt  # 每次在115网盘根目录生成目录树
 EXCLUDE_OPTION=1                # 可选配置，排除的目录，一级目录填 1
 ```
 
-其他环境变量说明：
+## 其他环境变量
 
 ```env
-UPDATE_EXISTING=0 # 可选配置，是否更新已存在的 strm 文件
-DELETE_ABSENT=1   # 可选配置，是否删除目录树中不存在的 strm 文件
+UPDATE_EXISTING=1 # 可选配置，默认 1 更新，是否已存在的 strm 文件。0 不更新
+DELETE_ABSENT=1   # 可选配置，默认 1 删除，是否删除目录树中不存在的 strm 文件。0 不删除
 
-# 可选配置，自定义生成 strm 文件的文件后缀名
-MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg
+# 可选配置，自定义生成 strm 文件的文件后缀名，不需要的可以删除
+MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg,iso
 ```
+
+## 启动服务
 
 确认上述环境变量后，启动服务：
 
 ```bash
 docker compose up -d
 ```
+
+## 文件后缀列表
+
+常见媒体文件后缀：
+
+- 音频文件格式：mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta
+- 视频文件格式：mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg
+- 光盘镜像文件格式：iso
 
 ## 分享音乐
 

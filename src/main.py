@@ -15,8 +15,8 @@ ALIST_115_MOUNT_PATH = os.getenv("ALIST_115_MOUNT_PATH", "/115")
 ALIST_115_TREE_FILE = os.getenv("ALIST_115_TREE_FILE", "/目录树.txt")
 STRM_SAVE_PATH = os.getenv("STRM_SAVE_PATH", "/data")
 EXCLUDE_OPTION = int(os.getenv("EXCLUDE_OPTION", 1))
-UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 1)) # 默认更新已存在的 strm 文件
-DELETE_ABSENT = int(os.getenv("DELETE_ABSENT", 1))     # 默认删除目录树中不存在的 strm 文件
+UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 1)) # 是否更新已存在的 strm 文件，默认更新
+DELETE_ABSENT = int(os.getenv("DELETE_ABSENT", 1))     # 是否删除目录树中不存在的 strm 文件，默认删除
 
 ALIST_115_TREE_FILE_FOR_GUEST = os.getenv("ALIST_115_TREE_FILE_FOR_GUEST", "")
 
@@ -243,10 +243,9 @@ if __name__ == "__main__":
             response = fetch_file_info(api_url_file_info, ALIST_115_TREE_FILE_FOR_GUEST)
             if response:
                 modified, sha1 = extract_modified_and_sha1(response)
-                print(f"Modified: {modified} SHA1: {sha1}")
                 if os.path.isfile(output_file) and sha1 == get_file_sha1(output_file):
                     # 判断本地文件 sha1 与远端是否相同
-                    print(f"文件 hash 值未改变，更新跳过。")
+                    print(f"文件 hash 值未改变，更新跳过。 Modified: {modified} SHA1: {sha1}")
                     exit(1)  # 退出程序，状态码为 1
                 else:
                     download_with_redirects(DIRECTORY_TREE_FILE, output_file)
