@@ -1,6 +1,25 @@
+[license]: /LICENSE
+[license-badge]: https://img.shields.io/github/license/Akimio521/AutoFilm?style=flat-square&a=1
+[prs]: https://github.com/uwang/115-strm
+[prs-badge]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square
+[issues]: https://github.com/uwang/115-strm/issues/new
+[issues-badge]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=flat-square
+[release]: https://github.com/uwang/115-strm/releases/latest
+[release-badge]: https://img.shields.io/github/v/release/uwang/115-strm?style=flat-square
+[docker]: https://hub.docker.com/r/uwang/115-strm
+[docker-badge]: https://img.shields.io/docker/pulls/uwang/115-strm?color=%2348BB78&logo=docker&label=pulls
+
 # 115-strm
 
-通过 115 网盘生成下载目录树，自动生成 strm 文件，使用 alist 的情况下，可添加到 emby 进行播放
+[![license][license-badge]][license]
+[![prs][prs-badge]][prs]
+[![issues][issues-badge]][issues]
+[![release][release-badge]][release]
+[![docker][docker-badge]][docker]
+
+使用 alist 的情况下，下载 115 网盘生成的目录树，根据目录树自动生成 strm 文件。
+生成的 strm 文件添加到 emby 可进行播放。
+infuse 添加 emby 正常使用，不会触发 115 风控。
 
 原理：每小时获取一次 115 网盘内的 `目录树.txt`，并生成（更新） strm 文件。
 >PS: 由于 alist 默认有文件缓存 30 分钟后，所以115网盘内的目录树更新后，strm 文件可能在下一个整点更新，也可能在第二个整点更新。
