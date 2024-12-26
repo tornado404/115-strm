@@ -20,7 +20,7 @@ services:
           - ALIST_115_MOUNT_PATH=/115
           - ALIST_115_TREE_FILE=/目录树.txt
           - EXCLUDE_OPTION=1
-          - UPDATE_EXISTING=1
+          - UPDATE_EXISTING=0
           - DELETE_ABSENT=1
           - ALIST_115_TREE_FILE_FOR_GUEST=/115/目录树.txt
           - MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg,iso
@@ -70,7 +70,7 @@ EXCLUDE_OPTION=1                # 可选配置，排除的目录，一级目录�
 ## 其他环境变量
 
 ```env
-UPDATE_EXISTING=1 # 可选配置，默认 1 更新，是否已存在的 strm 文件。0 不更新
+UPDATE_EXISTING=0 # 可选配置，默认 0 不更新，是否已存在的 strm 文件。1 更新
 DELETE_ABSENT=1   # 可选配置，默认 1 删除，是否删除目录树中不存在的 strm 文件。0 不删除
 
 # 可选配置，自定义生成 strm 文件的文件后缀名，不需要的可以删除
@@ -90,7 +90,7 @@ docker compose up -d
 常见媒体文件后缀：
 
 - 音频文件格式：mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta
-- 视频文件格式：mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg
+- 视频文件格式：mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg,iso
 - 光盘镜像文件格式：iso
 
 ## 分享音乐

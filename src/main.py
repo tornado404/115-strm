@@ -15,7 +15,7 @@ ALIST_115_MOUNT_PATH = os.getenv("ALIST_115_MOUNT_PATH", "/115")
 ALIST_115_TREE_FILE = os.getenv("ALIST_115_TREE_FILE", "/目录树.txt")
 STRM_SAVE_PATH = os.getenv("STRM_SAVE_PATH", "/data")
 EXCLUDE_OPTION = int(os.getenv("EXCLUDE_OPTION", 1))
-UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 1)) # 是否更新已存在的 strm 文件，默认更新
+UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 0)) # 是否更新已存在的 strm 文件，默认不更新
 DELETE_ABSENT = int(os.getenv("DELETE_ABSENT", 1))     # 是否删除目录树中不存在的 strm 文件，默认删除
 
 ALIST_115_TREE_FILE_FOR_GUEST = os.getenv("ALIST_115_TREE_FILE_FOR_GUEST", "")
