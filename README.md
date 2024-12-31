@@ -45,7 +45,7 @@ services:
           - MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg,iso
           - TZ=Asia/Shanghai
         volumes:
-            - '/path/to/strm:/data'
+            - '/path/to/strm:/data' # 修改为自己的存储路径
         restart: 'unless-stopped'
 ```
 
