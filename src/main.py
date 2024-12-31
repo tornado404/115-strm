@@ -243,7 +243,10 @@ if __name__ == "__main__":
             response = fetch_file_info(api_url_file_info, ALIST_115_TREE_FILE_FOR_GUEST)
             if response:
                 modified, sha1 = extract_modified_and_sha1(response)
-                if os.path.isfile(output_file) and sha1 == get_file_sha1(output_file):
+                if modified == None and sha1 == None:
+                    print("alist 无法获取文件，请检查115登录状态")
+                    exit(1)  # 退出程序，状态码为 1
+                elif os.path.isfile(output_file) and sha1 == get_file_sha1(output_file):
                     # 判断本地文件 sha1 与远端是否相同
                     print(f"文件 hash 值未改变，更新跳过。 Modified: {modified} SHA1: {sha1}")
                     exit(1)  # 退出程序，状态码为 1
