@@ -2,8 +2,9 @@ name: Docker Image
 
 on:
   push:
-    tags:   # 仅在推送 Git Tag 时触发
-      - '*'
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build-and-push:
