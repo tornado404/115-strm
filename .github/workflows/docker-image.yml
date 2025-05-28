@@ -1,4 +1,4 @@
-name: Publish Multi-Architecture Docker Image
+name: Docker Image
 
 on:
   push:
