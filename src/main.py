@@ -194,12 +194,55 @@ def parse_directory_tree(file_path, generated_file):
             full_path = '/' + '/'.join(current_path_stack)
             output_file.write(full_path + '\n')
 
+
+def filter_mp4_files(directory_file, exclude_option):
+    """过滤目录下有两个及以上 .mp4 文件，且文件名包含空格（中英文）或包含超过一个空格的.mp4文件"""
+    import re
+    filtered_lines = []
+    dir_mp4_map = {}
+    with open(directory_file, 'r', encoding='utf-8') as file:
+        for idx, line in enumerate(file):
+            line = line.strip()
+            if line.count('/') < exclude_option + 1:
+                filtered_lines.append(line)
+                continue
+            adjusted_path = '/'.join(line.split('/')[exclude_option + 1:])
+            if adjusted_path.lower().endswith('.mp4'):
+                dir_path = os.path.dirname(adjusted_path)
+                if dir_path not in dir_mp4_map:
+                    dir_mp4_map[dir_path] = []
+                dir_mp4_map[dir_path].append((adjusted_path, idx, line))
+            else:
+                filtered_lines.append(line)
+    # 处理每个目录下的mp4
+    remove_idx = set()
+    for dir_path, files in dir_mp4_map.items():
+        if len(files) >= 2:
+            for adjusted_path, idx, line in files:
+                filename = os.path.basename(adjusted_path)
+                # 文件名包含中英文空格
+                if re.search(r'[ \u3000]', filename):
+                    remove_idx.add(idx)
+                    continue
+                # 文件名中空格数量超过2个
+                if len(re.findall(r'[ ]', filename)) > 2:
+                    remove_idx.add(idx)
+    # 重新读取文件，过滤掉不合格的行
+    with open(directory_file, 'r', encoding='utf-8') as file:
+        result_lines = [line for idx, line in enumerate(file) if idx not in remove_idx]
+    # 写回过滤后的内容到新文件
+    filtered_file = directory_file + '.filtered'
+    with open(filtered_file, 'w', encoding='utf-8') as f:
+        f.writelines(result_lines)
+    return filtered_file
+ 
 def generate_strm_files(directory_file, strm_path, alist_full_url, exclude_option):
     """生成 .strm 文件，同时记录生成的文件路径"""
     os.makedirs(strm_path, exist_ok=True)
     media_extensions = get_media_extensions() # 获取文件类型后缀集合
     generated_files = set()  # 用于记录新生成的文件路径
 
+   
     with open(directory_file, 'r', encoding='utf-8') as file:
         for line in file:
             line = line.strip()
@@ -266,8 +309,11 @@ if __name__ == "__main__":
     converted_file = os.path.splitext(output_file)[0] + '_converted.txt'
     parse_directory_tree(output_file, converted_file)
 
+    # 过滤.mp4文件
+    filtered_file = filter_mp4_files(converted_file, EXCLUDE_OPTION)
+
     # 生成 .strm 文件
-    generated_files = generate_strm_files(converted_file, STRM_SAVE_PATH, ALIST_FILE_URL_PRFIX, EXCLUDE_OPTION)
+    generated_files = generate_strm_files(filtered_file, STRM_SAVE_PATH, ALIST_FILE_URL_PRFIX, EXCLUDE_OPTION)
 
     # 删除多余的 .strm 文件
     if DELETE_ABSENT == 1:
