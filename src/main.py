@@ -252,7 +252,17 @@ def generate_strm_files(directory_file, strm_path, alist_full_url, exclude_optio
             if adjusted_path.split('.')[-1].lower() in media_extensions:
                 encoded_path = urllib.parse.quote(adjusted_path)
                 full_url = f"{alist_full_url}/{encoded_path}"
+                # 如果adjusted_path文件名过长，则截取第一个空格前的部分，如果还是过长，则固定前50个字符
+                if len(adjusted_path) > 255:
+                    # 找到第一个空格
+                    space_index = adjusted_path.find(' ')
+                    if space_index != -1:
+                        adjusted_path = adjusted_path[:space_index]
+                    if len(adjusted_path) > 255:
+                        adjusted_path = adjusted_path[:50]
+                # 生成.strm 文件
                 strm_file_path = os.path.join(strm_path, adjusted_path + '.strm')
+                
                 os.makedirs(os.path.dirname(strm_file_path), exist_ok=True)
 
                 with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
