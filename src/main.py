@@ -2,12 +2,14 @@
 # -*- coding:utf-8 -*-
 import os
 import urllib.parse
+from pathlib import Path
+
 import requests
 import chardet  # 用于检测文件编码
 import json
 from datetime import datetime
 import hashlib
-
+ 
 # 从环境变量获取配置
 ALIST_HOST = os.getenv("ALIST_HOST", "127.0.0.1")
 ALIST_PORT= os.getenv("ALIST_PORT", 5244)
@@ -17,7 +19,6 @@ STRM_SAVE_PATH = os.getenv("STRM_SAVE_PATH", "/data")
 EXCLUDE_OPTION = int(os.getenv("EXCLUDE_OPTION", 1))
 UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 0)) # 是否更新已存在的 strm 文件，默认不更新
 DELETE_ABSENT = int(os.getenv("DELETE_ABSENT", 1))     # 是否删除目录树中不存在的 strm 文件，默认删除
-
 ALIST_115_TREE_FILE_FOR_GUEST = os.getenv("ALIST_115_TREE_FILE_FOR_GUEST", "")
 
 ALIST_URL = f"http://{ALIST_HOST}:{ALIST_PORT}"
@@ -31,6 +32,7 @@ DIRECTORY_TREE_FILE = f"{ALIST_FILE_URL_PRFIX}{ALIST_115_TREE_FILE}"
 def get_media_extensions():
     """
     从环境变量 MEDIA_EXTENSIONS 获取媒体扩展名集合。
+    {'gif', 'srt', 'flv', 'flac', 'vtt', 'pdf', 'jpg', 'iso', 'png', 'nrg', 'wma', 'doc', 'sub', 'docx', 'webm', 'dff', 'dvd', 'bmp', 'ogg', 'bin', 'mkv', 'wav', 'wmv', 'tiff', 'mpeg', 'wv', 'jpeg', 'ass', 'mov', 'tta', 'xml', 'lrc', 'mp4', 'ape', 'alac', 'vob', 'new', 'mpg', 'csv', 'm4a', 'aac', 'svg', 'img', 'ssa', 'cue', 'txt', 'mp3', 'heic', 'pcm', 'avi', 'dsf', 'aiff'}
     如果环境变量不存在或为空，使用默认值。
     """
     default_extensions = {
@@ -195,38 +197,46 @@ def parse_directory_tree(file_path, generated_file):
             output_file.write(full_path + '\n')
 
 
+def read_blacklist(blacklist_path: str) -> set:
+    """
+    从黑名单文件中读取黑名单，返回一个集合
+    """
+    # 加载黑名单关键词
+    blacklist = set()
+    if os.path.exists(blacklist_path):
+        encoding = detect_file_encoding(blacklist_path)
+        with open(blacklist_path, 'r', encoding=encoding) as bl_file:
+            for line in bl_file:
+                keyword = line.strip()
+                if keyword:
+                    blacklist.add(keyword.lower())  # 统一小写比较，兼容英文
+    else:
+        print(f"未找到黑名单文件：{blacklist_path}")
+    return blacklist
+
 def filter_mp4_files(directory_file, exclude_option):
-    """过滤目录下有两个及以上 .mp4 文件，且文件名包含空格（中英文）或包含超过一个空格的.mp4文件"""
-    import re
-    filtered_lines = []
+    """
+    过滤目录  .mp4 文件，返回新的返回新的directory_file
+    :param directory_file: 目录树文件的路径
+    :param exclude_option: 排除目录层级 
+    """
     dir_mp4_map = {}
+    remove_idx = set()
+    blacklist = read_blacklist("./blacklist.txt")
+    media_extensions = get_media_extensions()  # 获取文件类型后缀集合
     with open(directory_file, 'r', encoding='utf-8') as file:
         for idx, line in enumerate(file):
             line = line.strip()
-            if line.count('/') < exclude_option + 1:
-                filtered_lines.append(line)
-                continue
             adjusted_path = '/'.join(line.split('/')[exclude_option + 1:])
-            if adjusted_path.lower().endswith('.mp4'):
-                dir_path = os.path.dirname(adjusted_path)
-                if dir_path not in dir_mp4_map:
-                    dir_mp4_map[dir_path] = []
-                dir_mp4_map[dir_path].append((adjusted_path, idx, line))
-            else:
-                filtered_lines.append(line)
-    # 处理每个目录下的mp4
-    remove_idx = set()
-    for dir_path, files in dir_mp4_map.items():
-        if len(files) >= 2:
-            for adjusted_path, idx, line in files:
-                filename = os.path.basename(adjusted_path)
-                # 文件名包含中英文空格
-                if re.search(r'[ \u3000]', filename):
-                    remove_idx.add(idx)
-                    continue
-                # 文件名中空格数量超过2个
-                if len(re.findall(r'[ ]', filename)) > 2:
-                    remove_idx.add(idx)
+            if adjusted_path.split('.')[-1].lower() not in media_extensions:
+                remove_idx.add(idx)
+            filename = os.path.basename(adjusted_path)
+            clean_name = filename.replace(' ', '').replace('|-', '').replace('|', '')
+            print(f"clean_name: {clean_name}")
+            if any(keyword in clean_name.lower() for keyword in blacklist):
+                print(f"已过滤视频：{clean_name} 命中黑名单")
+                remove_idx.add(idx)
+     
     # 重新读取文件，过滤掉不合格的行
     with open(directory_file, 'r', encoding='utf-8') as file:
         result_lines = [line for idx, line in enumerate(file) if idx not in remove_idx]
@@ -236,12 +246,13 @@ def filter_mp4_files(directory_file, exclude_option):
         f.writelines(result_lines)
     return filtered_file
  
+ 
 def generate_strm_files(directory_file, strm_path, alist_full_url, exclude_option):
     """生成 .strm 文件，同时记录生成的文件路径"""
     os.makedirs(strm_path, exist_ok=True)
     media_extensions = get_media_extensions() # 获取文件类型后缀集合
     generated_files = set()  # 用于记录新生成的文件路径
-
+    print(f"{media_extensions}")
    
     with open(directory_file, 'r', encoding='utf-8') as file:
         for line in file:
@@ -284,12 +295,15 @@ def delete_absent_files(strm_path, generated_files):
                     os.remove(full_path)
                     print(f"删除多余文件: {full_path}")
 
-if __name__ == "__main__":
+def fetch_tree_file():
+    """
+    获得目录树文件
+    """
     # 检查目录树文件
     if DIRECTORY_TREE_FILE.startswith("http"):
         # 目录树文件为远端文件
         output_file = f"{STRM_SAVE_PATH}/{extract_filename_from_url(DIRECTORY_TREE_FILE)}"
-        
+
         if ALIST_115_TREE_FILE_FOR_GUEST:
             # 如果设置了目录树探测路径，说明开启了此功能
             api_url_file_info = f"{ALIST_URL}/api/fs/get"
@@ -310,11 +324,8 @@ if __name__ == "__main__":
     else:
         # 目录树为本地文件
         output_file = DIRECTORY_TREE_FILE
-    
-    if not os.path.isfile(output_file):
-        print(f"目录树文件不存在: {output_file}")
-        exit(1)
 
+def process(output_file):
     # 解析目录树文件
     converted_file = os.path.splitext(output_file)[0] + '_converted.txt'
     parse_directory_tree(output_file, converted_file)
@@ -331,3 +342,11 @@ if __name__ == "__main__":
 
     os.remove(converted_file)
     print(".strm 文件生成完成！")
+
+if __name__ == "__main__":
+    output_file = fetch_tree_file()
+    if not os.path.isfile(output_file):
+        print(f"目录树文件不存在: {output_file}")
+        exit(1)
+    process(output_file)
+    
