@@ -220,6 +220,7 @@ def filter_mp4_files(directory_file, exclude_option):
     :param directory_file: 目录树文件的路径
     :param exclude_option: 排除目录层级 
     """
+    import re
     dir_mp4_map = {}
     remove_idx = set()
     blacklist = read_blacklist("./blacklist.txt")
@@ -232,8 +233,9 @@ def filter_mp4_files(directory_file, exclude_option):
                 remove_idx.add(idx)
             filename = os.path.basename(adjusted_path)
             clean_name = filename.replace(' ', '').replace('|-', '').replace('|', '')
-            print(f"clean_name: {clean_name}")
-            if any(keyword in clean_name.lower() for keyword in blacklist):
+            normalized_name = re.sub(r"\s+", "", clean_name).lower()
+            print(f"clean_name: {normalized_name}")
+            if any(keyword in normalized_name for keyword in blacklist):
                 print(f"已过滤视频：{clean_name} 命中黑名单")
                 remove_idx.add(idx)
      

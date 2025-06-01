@@ -1,0 +1,50 @@
+services:
+    alpine:
+        image: ghcr.io/tornado404/115-strm:latest
+        container_name: alist-strm-dp
+        network_mode: "host"
+        environment:
+          - ALIST_HOST=127.0.0.1
+          - ALIST_PORT=5244
+          - ALIST_115_MOUNT_PATH=/115
+          - ALIST_115_TREE_FILE=/目录树.txt
+          - EXCLUDE_OPTION=1
+          - UPDATE_EXISTING=0
+          - DELETE_ABSENT=1
+          - ALIST_115_TREE_FILE_FOR_GUEST=/115/目录树.txt
+          - MEDIA_EXTENSIONS=mp3,flac,wav,aac,ogg,wma,alac,m4a,aiff,ape,dsf,dff,wv,pcm,tta,mp4,mkv,avi,mov,wmv,flv,webm,vob,mpg,mpeg,iso
+          - TZ=Asia/Shanghai
+        volumes:
+            - '/mnt/emmc/jellyfin/media/strm:/data' 
+        restart: 'unless-stopped'
+    jellyfin:
+        image: jellyfin/jellyfin:latest
+        container_name: jellyfin-dp
+        network_mode: "host"
+        environment:
+            - TZ=Asia/Shanghai
+        volumes:
+            - '/mnt/emmc/jellyfin/config:/config'
+            - '/mnt/emmc/jellyfin/cache:/cache'
+            - '/mnt/emmc/jellyfin/media:/media'
+        devices:
+            - /dev/mali0:/dev/mali0 
+            - /dev/dri/card0:/dev/dri/card0
+            - /dev/dri/renderD128:/dev/dri/renderD128
+            - /dev/video0:/dev/video0  
+        privileged: true  
+        restart: 'unless-stopped'
+    alist:
+        image: alist666/alist:latest 
+        container_name: alist
+        network_mode: "host"
+        volumes:
+            - '/opt/alist/data:/opt/alist/data'
+            - '/mnt/emmc:/mnt/emmc'
+        environment:
+            - TZ=Asia/Shanghai
+            - RUN_ARIA2=true
+            - PUID=0
+            - PGID=0
+            - UMASK=022
+        restart: unless-stopped
