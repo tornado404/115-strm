@@ -263,17 +263,21 @@ def generate_strm_files(directory_file, strm_path, alist_full_url, exclude_optio
             if adjusted_path.split('.')[-1].lower() in media_extensions:
                 encoded_path = urllib.parse.quote(adjusted_path)
                 full_url = f"{alist_full_url}/{encoded_path}"
-                # 如果adjusted_path文件名过长，则截取第一个空格前的部分，如果还是过长，则固定前50个字符
-                if len(adjusted_path) > 255:
-                    # 找到第一个空格
-                    space_index = adjusted_path.find(' ')
-                    if space_index != -1:
-                        adjusted_path = adjusted_path[:space_index]
-                    if len(adjusted_path) > 255:
-                        adjusted_path = adjusted_path[:50]
+                parts = adjusted_path.split('/')
+                # 提取最后一个路径段（文件名或目录名）
+                last_part = parts[-1]
+                print(f"{len(last_part)} name: {adjusted_path}")
+                if len(last_part) > 100:
+                    # 缩短为前20个字符
+                    shortened_last = last_part[:20]
+                    # 替换原路径中的最后一段为缩短后的
+                    parts[-1] = shortened_last
+                    # 重新组合成路径
+                    adjusted_path = '/'.join(parts)
+                    print(f"split... to {adjusted_path}")
                 # 生成.strm 文件
                 strm_file_path = os.path.join(strm_path, adjusted_path + '.strm')
-                
+                print(f"strm_file_path: {strm_file_path}")
                 os.makedirs(os.path.dirname(strm_file_path), exist_ok=True)
 
                 with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
@@ -324,6 +328,7 @@ def fetch_tree_file():
     else:
         # 目录树为本地文件
         output_file = DIRECTORY_TREE_FILE
+    return output_file
 
 def process(output_file):
     # 解析目录树文件
@@ -345,7 +350,7 @@ def process(output_file):
 
 if __name__ == "__main__":
     output_file = fetch_tree_file()
-    if not os.path.isfile(output_file):
+    if not os.path.exists(output_file):
         print(f"目录树文件不存在: {output_file}")
         exit(1)
     process(output_file)
