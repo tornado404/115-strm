@@ -223,7 +223,9 @@ def filter_mp4_files(directory_file, exclude_option):
     import re
     dir_mp4_map = {}
     remove_idx = set()
-    blacklist = read_blacklist("./blacklist.txt")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    blacklist_path = os.path.join(current_dir, "blacklist.txt")
+    blacklist = read_blacklist(blacklist_path)
     media_extensions = get_media_extensions()  # 获取文件类型后缀集合
     with open(directory_file, 'r', encoding='utf-8') as file:
         for idx, line in enumerate(file):
