@@ -11,7 +11,7 @@ from datetime import datetime
 import hashlib
  
 # 从环境变量获取配置
-ALIST_HOST = os.getenv("ALIST_HOST", "127.0.0.1")
+ALIST_HOST = os.getenv("ALIST_HOST", "http://127.0.0.1")
 ALIST_PORT= os.getenv("ALIST_PORT", 5244)
 ALIST_115_MOUNT_PATH = os.getenv("ALIST_115_MOUNT_PATH", "/115")
 ALIST_115_TREE_FILE = os.getenv("ALIST_115_TREE_FILE", "/目录树.txt")
@@ -21,7 +21,7 @@ UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 0)) # 是否更新已存在�
 DELETE_ABSENT = int(os.getenv("DELETE_ABSENT", 1))     # 是否删除目录树中不存在的 strm 文件，默认删除
 ALIST_115_TREE_FILE_FOR_GUEST = os.getenv("ALIST_115_TREE_FILE_FOR_GUEST", "")
 
-ALIST_URL = f"http://{ALIST_HOST}:{ALIST_PORT}"
+ALIST_URL = f"{ALIST_HOST}:{ALIST_PORT}"
 ALIST_FILE_URL_PRFIX = f"{ALIST_URL}/d{ALIST_115_MOUNT_PATH}"
 DIRECTORY_TREE_FILE = f"{ALIST_FILE_URL_PRFIX}{ALIST_115_TREE_FILE}"
 
