@@ -9,23 +9,27 @@ import chardet  # 用于检测文件编码
 import json
 from datetime import datetime
 import hashlib
- 
+
+from login import login_get_token
+
 # 从环境变量获取配置
 ALIST_HOST = os.getenv("ALIST_HOST", "http://127.0.0.1")
 ALIST_PORT= os.getenv("ALIST_PORT", 5244)
 ALIST_115_MOUNT_PATH = os.getenv("ALIST_115_MOUNT_PATH", "/115")
 ALIST_115_TREE_FILE = os.getenv("ALIST_115_TREE_FILE", "/目录树.txt")
+user_name = os.getenv("USER_NAME", "sgdkn")
+pwd = os.getenv("PASSWORD", "j)!Gi~o*rD-00cU")
 # 重要说明：alist/openlist对权限控制不完善，直接挂载根目录会导致严重的隐私泄露
 # 请挂载一级目录使用，并使用当前参考调整实际访问的115资源url
 # 例如 `115盘根目录/媒体库` 被当做alist挂载路径 `/115`, 当访问资源
-# https://127.0.0。1:48158/d/115/媒体库/小姐姐/SSNI-938/SSNI-938.mp4
-# 由于你挂载的是`/媒体库`，在alist正确路径应该是https://127.0.0。1:48158/d/115/小姐姐/SSNI-938/SSNI-938.mp4
+# https://127.0.0.1:5244/d/115/媒体库/小姐姐/SSNI-938/SSNI-938.mp4
+# 由于你挂载的是`/媒体库`，在alist正确路径应该是https://127.0.0.1:5244/d/115/小姐姐/SSNI-938/SSNI-938.mp4
 DIR_PARENT = os.getenv("DIR_PARENT", "/媒体库") 
 STRM_SAVE_PATH = os.getenv("STRM_SAVE_PATH", "/data")
 EXCLUDE_OPTION = int(os.getenv("EXCLUDE_OPTION", 1))
 UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 0)) # 是否更新已存在的 strm 文件，默认不更新
 DELETE_ABSENT = int(os.getenv("DELETE_ABSENT", 1))     # 是否删除目录树中不存在的 strm 文件，默认删除
-ALIST_115_TREE_FILE_FOR_GUEST = os.getenv("ALIST_115_TREE_FILE_FOR_GUEST", "")
+ALIST_115_TREE_FILE_FOR_GUEST = os.getenv("ALIST_115_TREE_FILE_FOR_GUEST", "/115/目录树.txt")
 
 ALIST_URL = f"{ALIST_HOST}:{ALIST_PORT}"
 ALIST_FILE_URL_PRFIX = f"{ALIST_URL}/d{ALIST_115_MOUNT_PATH}"
@@ -104,6 +108,7 @@ def fetch_file_info(api_url, file_path, page=1, per_page=0, refresh=True):
     返回:
         str: API 返回的响应文本。
     """
+    tok = login_get_token(user_name, pwd)
     payload = json.dumps({
         "path": file_path,
         "page": page,
@@ -111,6 +116,7 @@ def fetch_file_info(api_url, file_path, page=1, per_page=0, refresh=True):
         "refresh": refresh
     })
     headers = {
+        'Authorization': tok,
         'Content-Type': 'application/json'
     }
     try:
@@ -346,7 +352,7 @@ def fetch_tree_file():
             if response:
                 modified, sha1 = extract_modified_and_sha1(response)
                 if modified == None and sha1 == None:
-                    print("alist 无法获取文件，请检查115登录状态")
+                    print(f"alist 无法获取文件，请检查115登录状态, {api_url_file_info}")
                     exit(1)  # 退出程序，状态码为 1
                 elif os.path.isfile(output_file) and sha1 == get_file_sha1(output_file):
                     # 判断本地文件 sha1 与远端是否相同
