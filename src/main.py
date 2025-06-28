@@ -15,6 +15,12 @@ ALIST_HOST = os.getenv("ALIST_HOST", "http://127.0.0.1")
 ALIST_PORT= os.getenv("ALIST_PORT", 5244)
 ALIST_115_MOUNT_PATH = os.getenv("ALIST_115_MOUNT_PATH", "/115")
 ALIST_115_TREE_FILE = os.getenv("ALIST_115_TREE_FILE", "/目录树.txt")
+# 重要说明：alist/openlist对权限控制不完善，直接挂载根目录会导致严重的隐私泄露
+# 请挂载一级目录使用，并使用当前参考调整实际访问的115资源url
+# 例如 `115盘根目录/媒体库` 被当做alist挂载路径 `/115`, 当访问资源
+# https://127.0.0。1:48158/d/115/媒体库/小姐姐/SSNI-938/SSNI-938.mp4
+# 由于你挂载的是`/媒体库`，在alist正确路径应该是https://127.0.0。1:48158/d/115/小姐姐/SSNI-938/SSNI-938.mp4
+DIR_PARENT = os.getenv("DIR_PARENT", "/媒体库") 
 STRM_SAVE_PATH = os.getenv("STRM_SAVE_PATH", "/data")
 EXCLUDE_OPTION = int(os.getenv("EXCLUDE_OPTION", 1))
 UPDATE_EXISTING = int(os.getenv("UPDATE_EXISTING", 0)) # 是否更新已存在的 strm 文件，默认不更新
@@ -266,23 +272,44 @@ def generate_strm_files(directory_file, strm_path, alist_full_url, exclude_optio
             adjusted_path = '/'.join(line.split('/')[exclude_option + 1:])
             if adjusted_path.split('.')[-1].lower() in media_extensions:
                 encoded_path = urllib.parse.quote(adjusted_path)
-                full_url = f"{alist_full_url}/{encoded_path}"
+                full_url = f"{alist_full_url}/{encoded_path}".replace(DIR_PARENT, "")
                 parts = adjusted_path.split('/')
                 # 提取最后一个路径段（文件名或目录名）
                 last_part = parts[-1]
-                print(f"{len(last_part)} name: {adjusted_path}")
                 if len(last_part) > 100:
                     # 缩短为前20个字符
-                    shortened_last = last_part[:20]
+                    last_part = last_part[:20]
                     # 替换原路径中的最后一段为缩短后的
-                    parts[-1] = shortened_last
+                    parts[-1] = last_part
                     # 重新组合成路径
                     adjusted_path = '/'.join(parts)
                     print(f"split... to {adjusted_path}")
-                # 生成.strm 文件
-                strm_file_path = os.path.join(strm_path, adjusted_path + '.strm')
+                
+                # 根据目录结构决定strm文件的保存路径
+                if len(parts) > 2:  # 确保有目录结构
+                    top_dir = parts[1]  # 顶级目录
+                    
+                    if top_dir == "剧集":
+                        # 对于"剧集"目录，保持当前处理逻辑
+                        strm_file_path = os.path.join(strm_path, last_part + '.strm')
+                    else:
+                        # 对于其他目录，平铺到子目录下
+                        # 创建顶级目录
+                        top_dir_path = os.path.join(strm_path, top_dir)
+                        os.makedirs(top_dir_path, exist_ok=True)
+                        
+                        if len(parts) > 2:  # 如果有叶子目录
+                            leaf_dir = parts[-2]  # 叶子目录是倒数第二个部分
+                            leaf_dir_path = os.path.join(top_dir_path, leaf_dir)
+                            os.makedirs(leaf_dir_path, exist_ok=True)
+                            strm_file_path = os.path.join(leaf_dir_path, last_part + '.strm')
+                        else:  # 如果没有叶子目录，直接放在顶级目录下
+                            strm_file_path = os.path.join(top_dir_path, last_part + '.strm')
+                else:
+                    # 如果没有目录结构，直接放在根目录下
+                    strm_file_path = os.path.join(strm_path, last_part + '.strm')
+                
                 print(f"strm_file_path: {strm_file_path}")
-                os.makedirs(os.path.dirname(strm_file_path), exist_ok=True)
 
                 with open(strm_file_path, 'w', encoding='utf-8') as strm_file:
                     strm_file.write(full_url)
